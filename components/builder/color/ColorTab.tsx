@@ -2,8 +2,13 @@
 
 import { useCallback } from "react";
 import { useAtom } from "jotai";
-import { colorsAtom, pinningStateAtom } from "@/atoms/design-system";
+import {
+  colorsAtom,
+  pinningStateAtom,
+  colorSchemeAtom,
+} from "@/atoms/design-system";
 import { generateColorVariation } from "@/lib/color/generateColorVariation";
+import type { ColorSchemeType } from "@/lib/color/harmony-algorithms";
 import { useCreativeIteration } from "@/hooks/useCreativeIteration";
 import { KeyboardInstructions } from "@/components/ui/KeyboardInstructions";
 import { PinButton } from "@/components/ui/PinButton";
@@ -31,6 +36,7 @@ const COLOR_SCHEMES = [
 export function ColorTab() {
   const [colors, setColors] = useAtom(colorsAtom);
   const [pinning, setPinning] = useAtom(pinningStateAtom);
+  const [selectedScheme, setSelectedScheme] = useAtom(colorSchemeAtom);
 
   // Generation function that respects pinning
   const generateVariation = useCallback(() => {
@@ -40,8 +46,9 @@ export function ColorTab() {
       pinnedAccent: pinning.colors.accent,
       pinnedBackground: pinning.colors.background,
       pinnedText: pinning.colors.text,
+      colorScheme: selectedScheme === "random" ? undefined : selectedScheme,
     });
-  }, [colors, pinning.colors]);
+  }, [colors, pinning.colors, selectedScheme]);
 
   // Creative iteration hook
   const iteration = useCreativeIteration({
@@ -64,6 +71,23 @@ export function ColorTab() {
   // Manual color change handlers
   const handleColorChange = (colorKey: keyof typeof colors, value: string) => {
     setColors((prev) => ({ ...prev, [colorKey]: value }));
+  };
+
+  // Get scheme description helper
+  const getSchemeDescription = (scheme: ColorSchemeType | "random"): string => {
+    if (scheme === "random")
+      return "Randomly selects a harmony type for variety";
+
+    const descriptions: Record<ColorSchemeType, string> = {
+      monochromatic: "Variations of a single hue - harmonious and calming",
+      analogous: "Adjacent colors on the wheel - naturally pleasing",
+      complementary: "Opposite colors - high contrast and vibrant",
+      triadic: "Three evenly spaced colors - balanced and lively",
+      tetradic: "Four colors in rectangle formation - rich and diverse",
+      "split-complementary":
+        "Base color + two adjacent to complement - softer contrast",
+    };
+    return descriptions[scheme] || "";
   };
 
   return (
@@ -190,6 +214,40 @@ export function ColorTab() {
                     placeholder="#F59E0B"
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Color Harmony Type</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="colorScheme">Harmony Algorithm</Label>
+                <Select
+                  value={selectedScheme}
+                  onValueChange={(value: ColorSchemeType | "random") =>
+                    setSelectedScheme(value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select harmony type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="random">
+                      🎲 Random (Surprise Me!)
+                    </SelectItem>
+                    {COLOR_SCHEMES.map((scheme) => (
+                      <SelectItem key={scheme.value} value={scheme.value}>
+                        {scheme.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {getSchemeDescription(selectedScheme)}
+                </p>
               </div>
             </CardContent>
           </Card>

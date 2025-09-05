@@ -12,6 +12,7 @@ import type {
   ColorHarmony,
   ContrastRatio,
 } from "@/types/design-system";
+import type { ColorSchemeType } from "@/lib/color/harmony-algorithms";
 
 // Creative iteration history types
 interface HistoryItem<T> {
@@ -115,6 +116,12 @@ export const iconsAtom = atomWithStorage<IconSystem>("huejitsu-icons", {
   weight: "regular",
   sizeScale: [12, 16, 20, 24, 32, 48, 64],
 });
+
+// Color scheme selection atom
+export const colorSchemeAtom = atomWithStorage<ColorSchemeType | "random">(
+  "huejitsu-color-scheme",
+  "random"
+);
 
 // Creative iteration atoms
 export const pinningStateAtom = atomWithStorage<PinningState>(
