@@ -60,7 +60,7 @@ export function getAllFormats(color: string): ColorFormats {
       hex: chromaColor.hex(),
       rgb: chromaColor.css(),
       hsl: chromaColor.css("hsl"),
-      hsv: chromaColor.css("hsv"),
+      hsv: `hsv(${chromaColor.hsv().join(", ")})`,
       lab: chromaColor.css("lab"),
       lch: chromaColor.css("lch"),
     };

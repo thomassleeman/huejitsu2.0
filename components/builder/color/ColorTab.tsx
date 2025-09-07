@@ -379,9 +379,6 @@ export function ColorTab() {
 
           {/* Usage Preview */}
           <Card>
-            <CardHeader>
-              <CardTitle>Usage Example</CardTitle>
-            </CardHeader>
             <CardContent>
               <div
                 className="p-6 rounded-lg border"

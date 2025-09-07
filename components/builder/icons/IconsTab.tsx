@@ -118,7 +118,7 @@ export function IconsTab() {
 
   // Manual change handlers
   const handleLibraryChange = (value: string) => {
-    setIcons((prev) => ({ ...prev, library: value }));
+    setIcons((prev) => ({ ...prev, library: value as "lucide" | "heroicons" }));
   };
 
   const handleWeightChange = (value: string) => {
@@ -127,7 +127,13 @@ export function IconsTab() {
 
   const applyIconStyle = (style: string) => {
     const variation = generateIconVariation(undefined, {
-      style: style as any,
+      style: style as
+        | "minimal"
+        | "bold"
+        | "friendly"
+        | "professional"
+        | "playful"
+        | "tech",
     });
     setIcons(variation);
   };
@@ -447,4 +453,3 @@ export function IconsTab() {
     </div>
   );
 }
-

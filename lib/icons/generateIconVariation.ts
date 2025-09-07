@@ -97,27 +97,50 @@ export function generateIconVariation(
   // If a specific style is requested, use that preset
   if (options.style) {
     const styleMap = {
-      minimal: ICON_STYLE_PRESETS[0],
-      bold: ICON_STYLE_PRESETS[1],
-      friendly: ICON_STYLE_PRESETS[2],
-      professional: ICON_STYLE_PRESETS[3],
-      playful: ICON_STYLE_PRESETS[4],
-      tech: ICON_STYLE_PRESETS[5],
+      minimal: {
+        library: "lucide" as const,
+        weight: "light" as const,
+        sizeScale: [12, 16, 20, 24, 32, 48, 64],
+      },
+      bold: {
+        library: "heroicons" as const,
+        weight: "bold" as const,
+        sizeScale: [16, 20, 24, 32, 40, 56, 72],
+      },
+      friendly: {
+        library: "lucide" as const,
+        weight: "regular" as const,
+        sizeScale: [14, 18, 22, 28, 36, 52, 68],
+      },
+      professional: {
+        library: "heroicons" as const,
+        weight: "regular" as const,
+        sizeScale: [16, 20, 24, 32, 48, 64],
+      },
+      playful: {
+        library: "lucide" as const,
+        weight: "medium" as const,
+        sizeScale: [18, 24, 36, 48],
+      },
+      tech: {
+        library: "heroicons" as const,
+        weight: "regular" as const,
+        sizeScale: [16, 20, 24, 32, 48, 64],
+      },
     };
     return { ...styleMap[options.style] };
   }
 
   // Handle pinned properties
-  let library: (typeof ICON_LIBRARIES)[number];
+  let library: "lucide" | "heroicons";
   let weight: (typeof ICON_WEIGHTS)[number];
   let sizeScale: number[];
 
   if (options.pinnedLibrary && currentIcons) {
-    library = currentIcons.library as (typeof ICON_LIBRARIES)[number];
+    library = currentIcons.library;
   } else {
-    const availableLibraries = options.preferredLibraries || ICON_LIBRARIES;
-    library =
-      availableLibraries[Math.floor(Math.random() * availableLibraries.length)];
+    const validLibraries: ("lucide" | "heroicons")[] = ["lucide", "heroicons"];
+    library = validLibraries[Math.floor(Math.random() * validLibraries.length)];
   }
 
   if (options.pinnedWeight && currentIcons) {
@@ -136,8 +159,30 @@ export function generateIconVariation(
 
   // If no constraints, sometimes use a preset for better coherence
   if (!Object.values(options).some(Boolean) && Math.random() < 0.3) {
+    const validPresets = [
+      {
+        library: "lucide" as const,
+        weight: "light" as const,
+        sizeScale: [12, 16, 20, 24, 32, 48, 64],
+      },
+      {
+        library: "heroicons" as const,
+        weight: "bold" as const,
+        sizeScale: [16, 20, 24, 32, 40, 56, 72],
+      },
+      {
+        library: "lucide" as const,
+        weight: "regular" as const,
+        sizeScale: [14, 18, 22, 28, 36, 52, 68],
+      },
+      {
+        library: "heroicons" as const,
+        weight: "regular" as const,
+        sizeScale: [16, 20, 24, 32, 48, 64],
+      },
+    ];
     const randomPreset =
-      ICON_STYLE_PRESETS[Math.floor(Math.random() * ICON_STYLE_PRESETS.length)];
+      validPresets[Math.floor(Math.random() * validPresets.length)];
     return { ...randomPreset };
   }
 
@@ -151,4 +196,3 @@ export function generateIconVariation(
 export function getRandomIconVariation(): IconSystem {
   return generateIconVariation();
 }
-

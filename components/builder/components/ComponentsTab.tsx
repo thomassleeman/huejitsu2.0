@@ -2,7 +2,11 @@
 
 import { useCallback } from "react";
 import { useAtom } from "jotai";
-import { componentsAtom, pinningStateAtom } from "@/atoms/design-system";
+import {
+  componentsAtom,
+  pinningStateAtom,
+  colorsAtom,
+} from "@/atoms/design-system";
 import { generateComponentVariation } from "@/lib/components/generateComponentVariation";
 import { useCreativeIteration } from "@/hooks/useCreativeIteration";
 import { KeyboardInstructions } from "@/components/ui/KeyboardInstructions";
@@ -19,6 +23,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { mix, isLight } from "@/lib/color/color-converter";
+
+type ShadowStyleType =
+  | "none"
+  | "subtle"
+  | "soft"
+  | "bold"
+  | "natural"
+  | "crisp"
+  | "playful"
+  | "professional"
+  | "digital"
+  | "warm";
+type ComponentStyleType =
+  | "minimal"
+  | "soft"
+  | "bold"
+  | "organic"
+  | "modern"
+  | "classic"
+  | "playful"
+  | "corporate"
+  | "tech"
+  | "warm";
 
 const SHADOW_STYLES = [
   { value: "none", label: "None" },
@@ -49,6 +77,7 @@ const COMPONENT_STYLES = [
 export function ComponentsTab() {
   const [components, setComponents] = useAtom(componentsAtom);
   const [pinning, setPinning] = useAtom(pinningStateAtom);
+  const [colors] = useAtom(colorsAtom);
 
   // Generation function that respects pinning
   const generateVariation = useCallback(() => {
@@ -88,7 +117,10 @@ export function ComponentsTab() {
   };
 
   const handleShadowStyleChange = (value: string) => {
-    setComponents((prev) => ({ ...prev, shadowStyle: value as any }));
+    setComponents((prev) => ({
+      ...prev,
+      shadowStyle: value as ShadowStyleType,
+    }));
   };
 
   const handleOpacityChange = (index: number, value: string) => {
@@ -105,25 +137,40 @@ export function ComponentsTab() {
 
   const applyComponentStyle = (style: string) => {
     const variation = generateComponentVariation(undefined, {
-      style: style as any,
+      style: style as ComponentStyleType,
     });
     setComponents(variation);
   };
 
-  // Shadow CSS based on style
+  // Shadow CSS based on style with dynamic colors
   const getShadowCSS = (style: string) => {
+    if (style === "none") return "none";
+
+    // Generate shadow color that complements the current color scheme
+    const shadowBase = isLight(colors.background) ? "#000000" : colors.text;
+
     const shadows = {
-      none: "none",
-      subtle: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-      soft: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-      bold: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-      natural: "0 8px 16px rgba(0, 0, 0, 0.15)",
-      crisp: "0 2px 8px rgba(0, 0, 0, 0.12)",
-      playful: "0 6px 20px rgba(0, 0, 0, 0.15)",
-      professional:
-        "0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24)",
-      digital: "0 0 10px rgba(59, 130, 246, 0.3)",
-      warm: "0 4px 12px rgba(245, 158, 11, 0.15)",
+      subtle: `0 1px 2px 0 ${mix(shadowBase, colors.background, 0.05)}`,
+      soft: `0 4px 6px -1px ${mix(
+        shadowBase,
+        colors.background,
+        0.1
+      )}, 0 2px 4px -1px ${mix(shadowBase, colors.background, 0.06)}`,
+      bold: `0 10px 15px -3px ${mix(
+        shadowBase,
+        colors.background,
+        0.1
+      )}, 0 4px 6px -2px ${mix(shadowBase, colors.background, 0.05)}`,
+      natural: `0 8px 16px ${mix(shadowBase, colors.background, 0.15)}`,
+      crisp: `0 2px 8px ${mix(shadowBase, colors.background, 0.12)}`,
+      playful: `0 6px 20px ${mix(colors.accent, shadowBase, 0.15)}`,
+      professional: `0 1px 3px ${mix(
+        shadowBase,
+        colors.background,
+        0.12
+      )}, 0 1px 2px ${mix(shadowBase, colors.background, 0.24)}`,
+      digital: `0 0 10px ${mix(colors.primary, shadowBase, 0.3)}`,
+      warm: `0 4px 12px ${mix(colors.secondary, shadowBase, 0.15)}`,
     };
     return shadows[style as keyof typeof shadows] || shadows.subtle;
   };
@@ -401,4 +448,3 @@ export function ComponentsTab() {
     </div>
   );
 }
-

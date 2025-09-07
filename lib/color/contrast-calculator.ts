@@ -1,242 +1,237 @@
 import chroma from "chroma-js";
-import { getLuminance } from "./color-converter";
 
 /**
- * Contrast calculation utilities using chroma-js
- * Implements WCAG contrast ratio calculations and accessibility checks
+ * WCAG contrast ratio calculation utilities using chroma-js
+ * Provides precise contrast ratio calculations following WCAG 2.1 guidelines
  */
-
-export interface ContrastResult {
-  ratio: number;
-  level: "AA" | "AAA" | "fail";
-  isLargeText?: boolean;
-}
 
 /**
- * Calculate contrast ratio between two colors
- * Based on WCAG 2.1 guidelines
+ * Calculate WCAG contrast ratio between two colors
+ * Formula: (L1 + 0.05) / (L2 + 0.05) where L1 is the lighter color's luminance
+ * @param foreground - Foreground color in any valid CSS format
+ * @param background - Background color in any valid CSS format
+ * @returns Contrast ratio (1:1 to 21:1)
  */
-export function calculateContrastRatio(color1: string, color2: string): number {
+export function calculateContrast(
+  foreground: string,
+  background: string
+): number {
   try {
-    const luminance1 = getLuminance(color1);
-    const luminance2 = getLuminance(color2);
+    const l1 = chroma(foreground).luminance();
+    const l2 = chroma(background).luminance();
 
-    const lighter = Math.max(luminance1, luminance2);
-    const darker = Math.min(luminance1, luminance2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
 
     return (lighter + 0.05) / (darker + 0.05);
   } catch (error) {
-    console.warn(`Error calculating contrast ratio: ${error}`);
-    return 1;
+    console.warn(
+      `Invalid color formats for contrast calculation: ${foreground}, ${background}`
+    );
+    return 1; // Worst possible contrast
   }
 }
 
 /**
- * Check if contrast ratio meets WCAG AA standards
+ * Get contrast ratio with specific requirements
+ * @param level - WCAG compliance level
+ * @param isLargeText - Whether the text is considered large (18pt+ or 14pt+ bold)
+ * @returns Required minimum contrast ratio
  */
-export function meetsAAContrast(
-  color1: string,
-  color2: string,
-  isLargeText: boolean = false
-): boolean {
-  const ratio = calculateContrastRatio(color1, color2);
-  return isLargeText ? ratio >= 3.0 : ratio >= 4.5;
-}
-
-/**
- * Check if contrast ratio meets WCAG AAA standards
- */
-export function meetsAAAContrast(
-  color1: string,
-  color2: string,
-  isLargeText: boolean = false
-): boolean {
-  const ratio = calculateContrastRatio(color1, color2);
-  return isLargeText ? ratio >= 4.5 : ratio >= 7.0;
-}
-
-/**
- * Get contrast level classification
- */
-export function getContrastLevel(
-  color1: string,
-  color2: string,
-  isLargeText: boolean = false
-): ContrastResult {
-  const ratio = calculateContrastRatio(color1, color2);
-
-  let level: "AA" | "AAA" | "fail" = "fail";
-
-  if (meetsAAAContrast(color1, color2, isLargeText)) {
-    level = "AAA";
-  } else if (meetsAAContrast(color1, color2, isLargeText)) {
-    level = "AA";
+export function getContrastRequirement(
+  level: "AA" | "AAA",
+  isLargeText: boolean
+): number {
+  if (level === "AAA") {
+    return isLargeText ? 4.5 : 7;
+  } else {
+    return isLargeText ? 3 : 4.5;
   }
-
-  return {
-    ratio,
-    level,
-    isLargeText,
-  };
 }
 
 /**
- * Find the best contrast color (black or white) for a given background
+ * Check if color pair meets WCAG AA compliance
+ * AA Level: 4.5:1 for normal text, 3:1 for large text
+ * @param foreground - Foreground color
+ * @param background - Background color
+ * @param isLargeText - Whether text is large (18pt+ or 14pt+ bold)
+ * @returns Whether the color pair meets AA compliance
  */
-export function getBestContrastColor(backgroundColor: string): string {
-  const blackContrast = calculateContrastRatio(backgroundColor, "#000000");
-  const whiteContrast = calculateContrastRatio(backgroundColor, "#FFFFFF");
+export function checkAACompliance(
+  foreground: string,
+  background: string,
+  isLargeText: boolean = false
+): boolean {
+  const ratio = calculateContrast(foreground, background);
+  const requirement = getContrastRequirement("AA", isLargeText);
+  return ratio >= requirement;
+}
+
+/**
+ * Check if color pair meets WCAG AAA compliance
+ * AAA Level: 7:1 for normal text, 4.5:1 for large text
+ * @param foreground - Foreground color
+ * @param background - Background color
+ * @param isLargeText - Whether text is large (18pt+ or 14pt+ bold)
+ * @returns Whether the color pair meets AAA compliance
+ */
+export function checkAAACompliance(
+  foreground: string,
+  background: string,
+  isLargeText: boolean = false
+): boolean {
+  const ratio = calculateContrast(foreground, background);
+  const requirement = getContrastRequirement("AAA", isLargeText);
+  return ratio >= requirement;
+}
+
+/**
+ * Get compliance level for a color pair
+ * @param foreground - Foreground color
+ * @param background - Background color
+ * @param isLargeText - Whether text is large
+ * @returns Compliance level achieved
+ */
+export function getComplianceLevel(
+  foreground: string,
+  background: string,
+  isLargeText: boolean = false
+): "AAA" | "AA" | "fail" {
+  if (checkAAACompliance(foreground, background, isLargeText)) {
+    return "AAA";
+  } else if (checkAACompliance(foreground, background, isLargeText)) {
+    return "AA";
+  } else {
+    return "fail";
+  }
+}
+
+/**
+ * Find the optimal text color (black or white) for a given background
+ * @param backgroundColor - Background color
+ * @returns '#000000' or '#FFFFFF' depending on which provides better contrast
+ */
+export function getOptimalTextColor(backgroundColor: string): string {
+  const blackContrast = calculateContrast("#000000", backgroundColor);
+  const whiteContrast = calculateContrast("#FFFFFF", backgroundColor);
 
   return blackContrast > whiteContrast ? "#000000" : "#FFFFFF";
 }
 
 /**
- * Generate accessible text color for a given background
- */
-export function getAccessibleTextColor(
-  backgroundColor: string,
-  preferredColor?: string
-): string {
-  if (preferredColor && meetsAAContrast(backgroundColor, preferredColor)) {
-    return preferredColor;
-  }
-
-  return getBestContrastColor(backgroundColor);
-}
-
-/**
- * Adjust color lightness to meet minimum contrast requirements
+ * Adjust a foreground color to meet minimum contrast requirements
+ * @param foreground - Original foreground color
+ * @param background - Background color
+ * @param targetRatio - Desired contrast ratio (default: 4.5 for AA)
+ * @param maxIterations - Maximum adjustment attempts (default: 50)
+ * @returns Adjusted color that meets contrast requirements, or original if adjustment fails
  */
 export function adjustForContrast(
-  color: string,
-  backgroundColor: string,
-  targetRatio: number = 4.5
+  foreground: string,
+  background: string,
+  targetRatio: number = 4.5,
+  maxIterations: number = 50
 ): string {
   try {
-    let adjustedColor = chroma(color);
-    let currentRatio = calculateContrastRatio(
-      adjustedColor.hex(),
-      backgroundColor
-    );
+    let adjustedColor = chroma(foreground);
+    let currentRatio = calculateContrast(adjustedColor.hex(), background);
 
-    // If contrast is already good, return original color
     if (currentRatio >= targetRatio) {
-      return adjustedColor.hex();
+      return adjustedColor.hex(); // Already meets requirements
     }
 
-    // Determine if we need to lighten or darken
-    const bgLuminance = getLuminance(backgroundColor);
-    const shouldLighten = bgLuminance < 0.5;
+    const backgroundLuminance = chroma(background).luminance();
+    const shouldDarken = backgroundLuminance > 0.5;
 
-    // Adjust in small steps until we meet the target ratio
-    const maxSteps = 20;
-    const stepSize = shouldLighten ? 0.1 : -0.1;
+    for (let i = 0; i < maxIterations; i++) {
+      if (shouldDarken) {
+        adjustedColor = adjustedColor.darken(0.1);
+      } else {
+        adjustedColor = adjustedColor.brighten(0.1);
+      }
 
-    for (let i = 0; i < maxSteps; i++) {
-      adjustedColor = shouldLighten
-        ? adjustedColor.brighten(0.1)
-        : adjustedColor.darken(0.1);
-
-      currentRatio = calculateContrastRatio(
-        adjustedColor.hex(),
-        backgroundColor
-      );
+      currentRatio = calculateContrast(adjustedColor.hex(), background);
 
       if (currentRatio >= targetRatio) {
+        return adjustedColor.hex();
+      }
+
+      // Prevent infinite loops at extreme values
+      const luminance = adjustedColor.luminance();
+      if (luminance <= 0.01 || luminance >= 0.99) {
         break;
       }
     }
 
-    return adjustedColor.hex();
+    // If adjustment fails, return optimal black or white
+    return getOptimalTextColor(background);
   } catch (error) {
-    console.warn(`Error adjusting color for contrast: ${error}`);
-    return color;
+    console.warn(
+      `Failed to adjust color for contrast: ${foreground} on ${background}`
+    );
+    return foreground;
   }
 }
 
 /**
- * Generate a palette of colors that all meet contrast requirements with a given background
+ * Generate a color palette with guaranteed contrast compliance
+ * @param baseColor - Base color to derive palette from
+ * @param level - WCAG compliance level to target
+ * @returns Object with background, text, and accent colors that meet contrast requirements
  */
 export function generateAccessiblePalette(
-  backgroundColor: string,
-  baseColors: string[],
-  targetRatio: number = 4.5
-): string[] {
-  return baseColors.map((color) =>
-    adjustForContrast(color, backgroundColor, targetRatio)
-  );
-}
-
-/**
- * Check if a color palette has sufficient contrast between colors
- */
-export function validatePaletteContrast(
-  colors: string[],
-  minRatio: number = 3.0
+  baseColor: string,
+  level: "AA" | "AAA" = "AA"
 ): {
-  isValid: boolean;
-  issues: Array<{ color1: string; color2: string; ratio: number }>;
+  background: string;
+  text: string;
+  accent: string;
+  muted: string;
+  border: string;
 } {
-  const issues: Array<{ color1: string; color2: string; ratio: number }> = [];
-
-  for (let i = 0; i < colors.length; i++) {
-    for (let j = i + 1; j < colors.length; j++) {
-      const ratio = calculateContrastRatio(colors[i], colors[j]);
-      if (ratio < minRatio) {
-        issues.push({
-          color1: colors[i],
-          color2: colors[j],
-          ratio,
-        });
-      }
-    }
-  }
-
-  return {
-    isValid: issues.length === 0,
-    issues,
-  };
-}
-
-/**
- * Calculate relative luminance according to WCAG 2.1
- * This is a more precise implementation using chroma-js
- */
-export function getRelativeLuminance(color: string): number {
   try {
-    return chroma(color).luminance();
+    const base = chroma(baseColor);
+    const isLightBase = base.luminance() > 0.5;
+
+    // Generate background
+    const background = isLightBase
+      ? chroma.mix(base, "#ffffff", 0.95).hex()
+      : chroma.mix(base, "#000000", 0.95).hex();
+
+    // Generate text with proper contrast
+    const textColor = getOptimalTextColor(background);
+    const text = adjustForContrast(
+      textColor,
+      background,
+      getContrastRequirement(level, false)
+    );
+
+    // Generate accent color that works with background
+    const accent = adjustForContrast(
+      baseColor,
+      background,
+      getContrastRequirement(level, false)
+    );
+
+    // Generate muted and border colors
+    const muted = chroma.mix(background, text, 0.1).hex();
+    const border = chroma.mix(background, text, 0.2).hex();
+
+    return {
+      background,
+      text,
+      accent,
+      muted,
+      border,
+    };
   } catch (error) {
-    console.warn(`Error calculating relative luminance: ${error}`);
-    return 0;
+    console.warn(`Failed to generate accessible palette from: ${baseColor}`);
+    return {
+      background: "#ffffff",
+      text: "#000000",
+      accent: baseColor,
+      muted: "#f5f5f5",
+      border: "#e5e5e5",
+    };
   }
-}
-
-/**
- * Generate semantic colors with proper contrast for accessibility
- */
-export function generateSemanticColors(backgroundColor: string): {
-  primary: string;
-  secondary: string;
-  success: string;
-  warning: string;
-  error: string;
-  info: string;
-} {
-  const baseColors = {
-    primary: "#3B82F6",
-    secondary: "#6B7280",
-    success: "#10B981",
-    warning: "#F59E0B",
-    error: "#EF4444",
-    info: "#06B6D4",
-  };
-
-  return {
-    primary: adjustForContrast(baseColors.primary, backgroundColor),
-    secondary: adjustForContrast(baseColors.secondary, backgroundColor),
-    success: adjustForContrast(baseColors.success, backgroundColor),
-    warning: adjustForContrast(baseColors.warning, backgroundColor),
-    error: adjustForContrast(baseColors.error, backgroundColor),
-    info: adjustForContrast(baseColors.info, backgroundColor),
-  };
 }

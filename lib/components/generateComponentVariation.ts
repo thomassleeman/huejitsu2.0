@@ -154,7 +154,8 @@ export function generateComponentVariation(
   }
 
   if (options.pinnedShadowStyle && currentComponents) {
-    shadowStyle = currentComponents.shadowStyle;
+    shadowStyle =
+      currentComponents.shadowStyle as (typeof SHADOW_STYLES)[number];
   } else {
     shadowStyle =
       SHADOW_STYLES[Math.floor(Math.random() * SHADOW_STYLES.length)];
@@ -192,4 +193,3 @@ export function generateComponentVariation(
 export function getRandomComponentVariation(): ComponentSystem {
   return generateComponentVariation();
 }
-
