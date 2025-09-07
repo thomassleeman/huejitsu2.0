@@ -8,7 +8,7 @@ import {
 import { isLight, mix } from "./color-converter";
 import {
   generateAccessiblePalette,
-  getOptimalTextColor,
+  adjustForContrast,
 } from "./contrast-calculator";
 
 export interface ColorVariationOptions {
@@ -55,7 +55,18 @@ export function generateColorVariation(
     ? accessiblePalette.background
     : mix(baseColor, "#000000", 0.95);
 
-  const defaultText = getOptimalTextColor(defaultBackground);
+  // Determine preferred text color based on theme for softer appearance
+  const preferredTextColor = isLightTheme
+    ? "#111827" // Dark gray for light backgrounds
+    : "#f8fafc"; // Light gray for dark backgrounds
+
+  // Use adjustForContrast to make it accessible while preserving aesthetics
+  // This function will either return the adjusted color or fall back to black/white if necessary
+  const defaultText = adjustForContrast(
+    preferredTextColor,
+    defaultBackground,
+    4.5 // WCAG AA compliance
+  );
 
   // Apply pinning logic while creating the result
   const primary =
