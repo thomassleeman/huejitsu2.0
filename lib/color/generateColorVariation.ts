@@ -60,11 +60,17 @@ export function generateColorVariation(
     ? "#111827" // Dark gray for light backgrounds
     : "#f8fafc"; // Light gray for dark backgrounds
 
+  // Determine the actual background that will be used (respecting pinning)
+  const actualBackground =
+    options.pinnedBackground && currentColors
+      ? currentColors.background
+      : defaultBackground;
+
   // Use adjustForContrast to make it accessible while preserving aesthetics
   // This function will either return the adjusted color or fall back to black/white if necessary
   const defaultText = adjustForContrast(
     preferredTextColor,
-    defaultBackground,
+    actualBackground, // Use the actual background (pinned or generated)
     4.5 // WCAG AA compliance
   );
 
@@ -81,10 +87,7 @@ export function generateColorVariation(
     options.pinnedAccent && currentColors
       ? currentColors.accent
       : schemeColors[2];
-  const background =
-    options.pinnedBackground && currentColors
-      ? currentColors.background
-      : defaultBackground;
+  const background = actualBackground;
   const text =
     options.pinnedText && currentColors ? currentColors.text : defaultText;
 

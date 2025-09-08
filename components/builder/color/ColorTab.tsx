@@ -10,6 +10,11 @@ import {
 import { generateColorVariation } from "@/lib/color/generateColorVariation";
 import type { ColorSchemeType } from "@/lib/color/harmony-algorithms";
 import { useCreativeIteration } from "@/hooks/useCreativeIteration";
+import {
+  getOptimalTextColor,
+  calculateContrast,
+  adjustForContrast,
+} from "@/lib/color/contrast-calculator";
 import { KeyboardInstructions } from "@/components/ui/KeyboardInstructions";
 import { PinButton } from "@/components/ui/PinButton";
 import { Button } from "@/components/ui/button";
@@ -68,9 +73,33 @@ export function ColorTab() {
     }));
   };
 
-  // Manual color change handlers
+  // Manual color change handlers with contrast checking
   const handleColorChange = (colorKey: keyof typeof colors, value: string) => {
-    setColors((prev) => ({ ...prev, [colorKey]: value }));
+    setColors((prev) => {
+      const updatedColors = { ...prev, [colorKey]: value };
+
+      // Only auto-adjust unpinned colors for contrast compliance
+      if (colorKey === "background" && !pinning.colors.text) {
+        // Auto-adjust text color when background changes (if text is not pinned)
+        updatedColors.text = getOptimalTextColor(value);
+      }
+
+      if (colorKey === "text" && !pinning.colors.background) {
+        // If text is manually changed but background isn't pinned,
+        // ensure background provides good contrast
+        const contrast = calculateContrast(value, prev.background);
+        if (contrast < 4.5) {
+          // Adjust background to ensure proper contrast
+          // Choose the background that provides better contrast with the new text color
+          const contrastWithWhite = calculateContrast(value, "#ffffff");
+          const contrastWithBlack = calculateContrast(value, "#000000");
+          updatedColors.background =
+            contrastWithWhite > contrastWithBlack ? "#ffffff" : "#000000";
+        }
+      }
+
+      return updatedColors;
+    });
   };
 
   // Get scheme description helper
