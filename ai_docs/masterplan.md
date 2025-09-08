@@ -126,7 +126,7 @@ Bridge the gap between design and development by providing guided design system 
 
 ### Key Libraries and Tools
 
-- **Color manipulation**: `chroma-js` or `colord`
+- **Color manipulation**: `chroma-js`. IMPORTANT: chroma-js must be used for all color manipulation tasks unless it does not offer the required functionality. If chroma-js does not offer the required functionality, ask for permission before writing any code that does not use chroma-js for color manipulation.
 - **Font loading**: `next/font` with Google Fonts
 - **Export generation**: Custom generators for each format
 - **UI animations**: `framer-motion` for smooth interactions
