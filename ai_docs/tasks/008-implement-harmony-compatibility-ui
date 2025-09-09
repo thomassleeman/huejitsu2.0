@@ -1,0 +1,330 @@
+# AI Task Planning Template
+
+---
+
+## 1. Task Overview
+
+### Task Title
+
+**Title:** Implement Harmony Compatibility UI with Disabled Options and Educational Tooltips
+
+### Goal Statement
+
+**Goal:** Create an intelligent UI system that disables incompatible harmony types when colors are pinned and provides educational tooltips explaining color theory relationships. This will prevent users from creating invalid harmony combinations while teaching them about color theory principles, creating a guided and educational user experience.
+
+---
+
+## 2. Strategic Analysis & solution options
+
+### Problem Context
+
+Currently, users can select any harmony type regardless of which colors are pinned, leading to broken harmony relationships. For example, if a user pins two colors that are 45° apart on the color wheel and selects "complementary" harmony (which requires 180° apart), the result is not a true complementary harmony. The UI should prevent these invalid combinations and educate users about why certain combinations aren't compatible.
+
+### SOLUTION OPTIONS ANALYSIS
+
+#### Option 1: Dynamic Dropdown with Disabled Options and Tooltips
+
+**Approach:** Analyze pinned colors in real-time, disable incompatible harmony options in the dropdown, and show explanatory tooltips on disabled options.
+
+**Pros:**
+
+- Proactive prevention of invalid combinations
+- Educational value through tooltips
+- Clear visual feedback about what's available
+- Maintains all options visible for educational context
+
+**Cons:**
+
+- Requires complex angle calculation logic
+- Need to handle edge cases with multiple pinned colors
+- Tooltip management complexity
+
+**Implementation complexity:** Medium - Color angle analysis plus UI state management
+**Risk Level:** Low - Clear UX pattern with good fallbacks
+
+#### Option 2: Warning System with Post-Selection Feedback
+
+**Approach:** Allow all selections but show warnings when incompatible combinations are chosen, with suggestions for compatible options.
+
+**Pros:**
+
+- Simpler initial implementation
+- Doesn't restrict user choice
+- Can provide detailed explanations
+
+**Cons:**
+
+- Reactive rather than proactive approach
+- Users can still create broken harmonies
+- More confusing UX with warnings after selection
+
+**Implementation complexity:** Low - Warning system is straightforward
+**Risk Level:** Medium - Users might ignore warnings
+
+#### Option 3: Smart Suggestions with Auto-Correction
+
+**Approach:** When users select incompatible combinations, automatically suggest and apply the closest compatible harmony type.
+
+**Pros:**
+
+- Intelligent system that guides users
+- Prevents broken harmonies
+- Educational opportunity
+
+**Cons:**
+
+- Overrides user choice without explicit consent
+- Complex logic to determine "closest" harmony
+- May be confusing when system changes selections
+
+**Implementation complexity:** High - Requires sophisticated matching algorithms
+**Risk Level:** High - Risk of user confusion from automatic changes
+
+### Recommendation & Rationale
+
+**CHOSEN SOLUTION:** Option 1 - Dynamic Dropdown with Disabled Options and Tooltips
+
+**Why is this the best choice:**
+
+1. **Proactive Prevention** - Stops problems before they occur rather than reacting after
+2. **Educational Value** - Tooltips teach color theory while guiding choices
+3. **Clear UX** - Visual feedback immediately shows what's possible
+4. **Respects User Agency** - Doesn't override choices, just guides them
+5. **Professional Polish** - Matches expectations for sophisticated design tools
+
+**Key Decision Factors:**
+
+- **Performance Impact:** Minimal - angle calculations are fast
+- **User Experience:** Excellent - prevents frustration and teaches color theory
+- **Complexity & Maintainability:** Medium - well-structured logic with clear patterns
+- **Scalability:** Good - system extends easily to new harmony types
+- **Security:** No impact
+- **Cost:** No additional cost
+
+**Alternative consideration:**
+Option 2 could be used as a fallback for edge cases where compatibility is unclear, but Option 1 provides the best primary experience.
+
+---
+
+## 3. Context & Problem Definition
+
+### Problem Statement
+
+The current harmony selection UI doesn't provide feedback about compatibility with pinned colors, leading to:
+
+1. **Invalid harmony combinations** - Users unknowingly create broken color relationships
+2. **Missed learning opportunities** - No education about why combinations don't work
+3. **Trial-and-error frustration** - Users must discover limitations through experimentation
+4. **Poor UX for design tools** - Professional tools should guide users toward valid choices
+
+The system needs to intelligently analyze pinned colors and provide real-time feedback about harmony compatibility while educating users about color theory principles.
+
+### Success Criteria
+
+- [ ] Harmony dropdown disables incompatible options when colors are pinned
+- [ ] Disabled options show educational tooltips explaining why they're incompatible
+- [ ] Compatible options remain fully functional
+- [ ] Random generation only selects from compatible harmony types
+- [ ] Tooltips teach color theory concepts (angles, relationships, etc.)
+- [ ] UI updates immediately when pins change
+- [ ] System works correctly with 1, 2, 3+ pinned colors
+- [ ] Performance remains smooth during real-time updates
+
+---
+
+## 4. Analysing the project before making changes
+
+### Technology & Architecture
+
+- **Frameworks & Versions:** Next.js 15 with App Router, TypeScript 5
+- **Language:** TypeScript 5
+- **Database & ORM:** Not applicable for this UI task
+- **UI & Styling:** Tailwind CSS 4, ShadCN/ui components (Select, Tooltip)
+- **Authentication:** Not applicable for this task
+- **Key Architectural Patterns:** Next.js App Router, Jotai state management, React hooks
+- **Relevant Existing Components:**
+  - `ColorTab.tsx` - Contains the harmony selection dropdown that needs enhancement
+  - `Select` components from ShadCN/ui for dropdown functionality
+  - `Tooltip` components from ShadCN/ui for educational overlays
+  - Existing pinning state management via Jotai
+- **Other relevant existing code:**
+  - `lib/color/harmony-algorithms.ts` - Contains color theory mathematics (already exists)
+  - chroma-js integration already implemented in modular color system
+  - Existing color state atoms and pinning logic
+
+### Fitting in with what is already there
+
+The current `ColorTab.tsx` already has a harmony selection dropdown using ShadCN Select components and the modular color system architecture is already in place with chroma-js integration. The change involves:
+
+1. **Adding compatibility analysis logic** - New functions to analyze pinned color relationships using existing chroma-js integration
+2. **Enhancing the existing Select component** - Conditionally disable options based on compatibility
+3. **Adding tooltip system** - Educational overlays on disabled options using existing ShadCN Tooltip components
+4. **State integration** - React to pinning state changes in real-time using existing Jotai atoms
+
+The existing state management handles pinning perfectly - we just need to subscribe to these changes and add the compatibility logic.
+
+### Do we need to refactor existing code to acheive our aims while keeping the code as clean as possible?
+
+Minimal refactoring is needed since the modular color system architecture already exists. The existing ColorTab structure is good, but we need to:
+
+**Proposed changes:**
+
+1. **Add compatibility analysis utilities** - New file with functions to analyze pinned colors using existing chroma-js functions
+2. **Create custom hook** - Hook to analyze pinned colors and determine compatible harmonies
+3. **Enhance Select rendering** - Add disabled states and tooltips to existing dropdown
+4. **Create educational content system** - Structured tooltips explaining color theory
+5. **Update random selection logic** - Filter random selections to compatible options only
+
+**Trade-off analysis:**
+
+- **Additional work:** Low-Medium - mostly additive changes leveraging existing modular architecture
+- **Benefits:**
+  - Significantly improved user experience
+  - Educational value adds professional polish
+  - Prevents user frustration from invalid combinations
+  - Leverages existing chroma-js integration for accurate color theory calculations
+
+The changes are mostly additive and enhance existing functionality without breaking current behavior, while leveraging the already-implemented modular color system.
+
+---
+
+## 5. Development Mode Context
+
+- **Project Stage:** This is a new application in active development.
+- **Breaking Changes:** Breaking changes are ok where absolutely necessary.
+- **Data Handling:** Data loss acceptable where necessary.
+- **User Base:** Users are internal staff, not end users.
+- **Priority:** Prioritise speed and simplicity over data preservation.
+- **Aggressive Refactoring Allowed:** delete/recreate components as needed where it makes sense to do so.
+
+---
+
+## 6. Frontend Changes
+
+### New Components
+
+- `hooks/useHarmonyCompatibility.ts` - Custom hook for analyzing pinned color compatibility
+- `components/ui/EducationalTooltip.tsx` - Specialized tooltip for color theory education
+- `lib/color/harmony-analysis.ts` - Utility functions for color relationship analysis
+
+### Enhanced Components
+
+- `ColorTab.tsx` - Enhanced harmony selection with disabled states and tooltips
+- Integration with existing Select and Tooltip components from ShadCN/ui
+
+### New Utilities
+
+- `analyzeColorRelationships()` - Determine angles between pinned colors
+- `getCompatibleHarmonies()` - Filter harmony types based on pinned colors
+- `generateHarmonyTooltip()` - Create educational content for each harmony type
+
+---
+
+## 7. State Management
+
+Building on existing Jotai atoms without changes:
+
+- **Input:** `colorsAtom` and `pinningStateAtom` (existing)
+- **Processing:** New custom hook `useHarmonyCompatibility` that derives compatibility state
+- **Output:** Compatible harmony list and tooltip content for UI consumption
+
+No new atoms needed - the custom hook will provide derived state for the UI components.
+
+---
+
+## 8. Implementation Plan
+
+### Phase 1: Color Relationship Analysis (2 hours)
+
+1. Create `lib/color/harmony-analysis.ts`:
+   - `calculateColorAngle()` - Get hue angle between two colors using chroma-js
+   - `analyzeColorRelationships()` - Analyze all pinned color relationships
+   - `getCompatibleHarmonies()` - Return compatible harmony types based on pinned colors
+   - `generateIncompatibilityReason()` - Create explanation text for why harmonies don't work
+
+### Phase 2: Compatibility Hook (1 hour)
+
+2. Create `hooks/useHarmonyCompatibility.ts`:
+   - Subscribe to pinning state changes
+   - Analyze pinned colors in real-time
+   - Return compatibility status for each harmony type
+   - Generate tooltip content for disabled options
+
+### Phase 3: Educational Tooltip System (1 hour)
+
+3. Create `components/ui/EducationalTooltip.tsx`:
+   - Specialized tooltip component for color theory education
+   - Support for rich content (angles, visual examples)
+   - Consistent styling for educational content
+
+### Phase 4: Enhanced UI Integration (2 hours)
+
+4. Update `ColorTab.tsx`:
+   - Integrate harmony compatibility hook
+   - Add disabled states to Select options
+   - Implement educational tooltips on disabled options
+   - Update random generation to respect compatibility
+   - Test real-time updates when pinning changes
+
+### Phase 5: Testing and Polish (1 hour)
+
+5. Comprehensive testing:
+   - Test all harmony types with different pinned color combinations
+   - Verify tooltips provide accurate and helpful information
+   - Ensure performance remains smooth during real-time updates
+   - Test accessibility of disabled options and tooltips
+
+---
+
+## 9. Task Completion Tracking
+
+### Real-Time Progress Tracking
+
+- [ ] Phase 1: Color relationship analysis functions created
+- [ ] Phase 2: Harmony compatibility hook implemented
+- [ ] Phase 3: Educational tooltip system built
+- [ ] Phase 4: UI integration completed with real-time updates
+- [ ] Phase 5: Testing and accessibility verification completed
+
+Update progress as each phase completes and report any issues or discoveries during implementation.
+
+---
+
+## 10. File Structure & Organization
+
+### Files to be created:
+
+- `/lib/color/harmony-analysis.ts` - Color relationship analysis utilities (new)
+- `/hooks/useHarmonyCompatibility.ts` - Custom hook for compatibility state (new)
+- `/components/ui/EducationalTooltip.tsx` - Specialized tooltip component (new)
+
+### Files to be modified:
+
+- `/components/builder/color/ColorTab.tsx` - Enhanced harmony selection UI
+
+### Files that already exist and work correctly:
+
+- `/atoms/design-system.ts` - Existing state management is sufficient (no changes)
+- `/lib/color/harmony-algorithms.ts` - Core harmony functions work correctly (no changes)
+- `/lib/color/color-converter.ts` - Color utilities already implemented (no changes)
+- `/lib/color/contrast-calculator.ts` - Existing chroma-js integration (no changes)
+- All other color system components - changes are isolated to harmony selection UI
+
+### New functions by file:
+
+**harmony-analysis.ts:**
+
+- `calculateColorAngle(color1: string, color2: string): number`
+- `analyzeColorRelationships(pinnedColors: ColorSystem, pinningState: PinningState): ColorRelationshipAnalysis`
+- `getCompatibleHarmonies(analysis: ColorRelationshipAnalysis): ColorSchemeType[]`
+- `generateIncompatibilityReason(harmonyType: ColorSchemeType, analysis: ColorRelationshipAnalysis): string`
+
+**useHarmonyCompatibility.ts:**
+
+- `useHarmonyCompatibility(): HarmonyCompatibilityState`
+
+**EducationalTooltip.tsx:**
+
+- React component with enhanced tooltip functionality for color theory education
+
+---

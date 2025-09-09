@@ -10,6 +10,7 @@ import {
   generateAccessiblePalette,
   adjustForContrast,
 } from "./contrast-calculator";
+import chroma from "chroma-js";
 
 export interface ColorVariationOptions {
   pinnedPrimary?: boolean;
@@ -21,21 +22,116 @@ export interface ColorVariationOptions {
   baseHue?: number;
 }
 
+/**
+ * Extract the hue from the first pinned color to use as base for harmony calculations
+ */
+function extractBaseHueFromPinnedColors(
+  currentColors: ColorSystem,
+  options: ColorVariationOptions
+): number | null {
+  // Priority order: primary, secondary, accent (background and text are less suitable for harmony base)
+  if (options.pinnedPrimary && currentColors.primary) {
+    try {
+      return chroma(currentColors.primary).get("hsl.h") || 0;
+    } catch {
+      return null;
+    }
+  }
+  if (options.pinnedSecondary && currentColors.secondary) {
+    try {
+      return chroma(currentColors.secondary).get("hsl.h") || 0;
+    } catch {
+      return null;
+    }
+  }
+  if (options.pinnedAccent && currentColors.accent) {
+    try {
+      return chroma(currentColors.accent).get("hsl.h") || 0;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Determine which color positions need generation (are not pinned)
+ */
+function getUnpinnedPositions(options: ColorVariationOptions): {
+  primary: boolean;
+  secondary: boolean;
+  accent: boolean;
+} {
+  return {
+    primary: !options.pinnedPrimary,
+    secondary: !options.pinnedSecondary,
+    accent: !options.pinnedAccent,
+  };
+}
+
+/**
+ * Map harmony colors to their appropriate positions, respecting pinned colors
+ */
+function mapHarmonyToColorSystem(
+  harmonyColors: string[],
+  currentColors: ColorSystem | undefined,
+  options: ColorVariationOptions
+): { primary: string; secondary: string; accent: string } {
+  const unpinned = getUnpinnedPositions(options);
+  let harmonyIndex = 0;
+
+  // If we have a pinned color that was used as the base, it should be the first harmony color
+  // So we start assigning from the second harmony color for unpinned positions
+  const pinnedBaseHue = currentColors
+    ? extractBaseHueFromPinnedColors(currentColors, options)
+    : null;
+  const startIndex = pinnedBaseHue !== null ? 1 : 0;
+
+  const result = {
+    primary: unpinned.primary
+      ? harmonyColors[startIndex + harmonyIndex++] || harmonyColors[0]
+      : currentColors?.primary || harmonyColors[0],
+    secondary: unpinned.secondary
+      ? harmonyColors[startIndex + harmonyIndex++] || harmonyColors[1]
+      : currentColors?.secondary || harmonyColors[1],
+    accent: unpinned.accent
+      ? harmonyColors[startIndex + harmonyIndex++] || harmonyColors[2]
+      : currentColors?.accent || harmonyColors[2],
+  };
+
+  return result;
+}
+
 export function generateColorVariation(
   currentColors?: ColorSystem,
   options: ColorVariationOptions = {}
 ): ColorSystem {
-  // Determine base hue and scheme
-  const baseHue = options.baseHue ?? getRandomHue();
+  // Determine base hue - use pinned color hue if available, otherwise use provided or random hue
+  let baseHue: number;
+  if (currentColors) {
+    const pinnedHue = extractBaseHueFromPinnedColors(currentColors, options);
+    baseHue = pinnedHue ?? options.baseHue ?? getRandomHue();
+  } else {
+    baseHue = options.baseHue ?? getRandomHue();
+  }
+
+  // Determine color scheme
   const scheme =
     options.colorScheme ??
     COLOR_SCHEMES[Math.floor(Math.random() * COLOR_SCHEMES.length)];
 
-  // Generate base color scheme using new harmony algorithms
+  // Generate harmony color scheme using the correct base hue
   const schemeColors = generateColorScheme(baseHue, scheme);
 
+  // Map harmony colors to color system positions, respecting pinned colors
+  const mappedColors = mapHarmonyToColorSystem(
+    schemeColors,
+    currentColors,
+    options
+  );
+
   // Create background and text colors using chroma-js with intelligent theme detection
-  const baseColor = schemeColors[0];
+  const baseColor = mappedColors.primary;
   const shouldUseLightTheme = Math.random() > 0.3; // 70% light themes preference
 
   // Generate accessible background color that harmonizes with the color scheme
@@ -74,19 +170,10 @@ export function generateColorVariation(
     4.5 // WCAG AA compliance
   );
 
-  // Apply pinning logic while creating the result
-  const primary =
-    options.pinnedPrimary && currentColors
-      ? currentColors.primary
-      : schemeColors[0];
-  const secondary =
-    options.pinnedSecondary && currentColors
-      ? currentColors.secondary
-      : schemeColors[1];
-  const accent =
-    options.pinnedAccent && currentColors
-      ? currentColors.accent
-      : schemeColors[2];
+  // Use the mapped colors for main color positions
+  const primary = mappedColors.primary;
+  const secondary = mappedColors.secondary;
+  const accent = mappedColors.accent;
   const background = actualBackground;
   const text =
     options.pinnedText && currentColors ? currentColors.text : defaultText;

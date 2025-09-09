@@ -11,8 +11,7 @@ interface CollapsibleTriggerProps
   asChild?: boolean;
 }
 
-interface CollapsibleContentProps
-  extends React.HTMLAttributes<HTMLDivElement> {}
+type CollapsibleContentProps = React.HTMLAttributes<HTMLDivElement>;
 
 const Collapsible = React.forwardRef<HTMLDivElement, CollapsibleProps>(
   ({ className, children, ...props }, ref) => (

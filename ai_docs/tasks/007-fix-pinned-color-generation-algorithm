@@ -1,0 +1,286 @@
+# AI Task Planning Template
+
+---
+
+## 1. Task Overview
+
+### Task Title
+
+**Title:** Fix Pinned Color Generation Algorithm to Use Pinned Colors as Base for Harmony Calculations
+
+### Goal Statement
+
+**Goal:** Fix the fundamental flaw in the color generation system where pinned colors are simply substituted at the end rather than being used as the foundation for harmony calculations. This will ensure that when users pin colors and select a harmony type, they get a true mathematical harmony relationship based on their pinned colors rather than a broken harmony with arbitrary substitutions.
+
+---
+
+## 2. Strategic Analysis & solution options
+
+### Problem Context
+
+The current `generateColorVariation` function has a critical design flaw: it generates a complete harmony scheme using a random or specified base hue, then simply replaces the generated colors with pinned ones at the end. This means when a user pins a red color and selects "triadic harmony," they don't get a true triadic relationship - they get a broken harmony where one color happens to be red but the other colors aren't mathematically related to it.
+
+### SOLUTION OPTIONS ANALYSIS
+
+#### Option 1: Extract Hue from Pinned Colors and Regenerate Harmony
+
+**Approach:** When any colors are pinned, extract the hue from the first pinned color and use it as the base for generating the harmony scheme. Only generate colors for the unpinned positions using proper harmony mathematics.
+
+**Pros:**
+
+- Maintains true harmony relationships
+- Simple logic: pinned colors drive the calculations
+- Users get mathematically correct color harmonies
+- Preserves the intent behind harmony selection
+
+**Cons:**
+
+- When multiple colors are pinned, need to choose which one to use as base
+- May not work when pinned colors don't form a valid harmony
+
+**Implementation complexity:** Medium - Requires rethinking the generation flow
+**Risk Level:** Low - Mathematical harmony algorithms are well-established
+
+#### Option 2: Validate Pinned Colors Against Harmony and Adjust
+
+**Approach:** When colors are pinned, analyze if they form a valid harmony relationship. If they do, use them as the base. If they don't, either adjust them slightly or warn the user.
+
+**Pros:**
+
+- Ensures mathematical correctness
+- Handles edge cases with invalid harmonies
+- Provides user feedback
+
+**Cons:**
+
+- Complex validation logic required
+- May modify user's pinned colors unexpectedly
+- Difficult to handle multiple valid interpretations
+
+**Implementation complexity:** High - Complex validation and adjustment logic
+**Risk Level:** Medium - Risk of user confusion from automatic adjustments
+
+#### Option 3: Pinned Colors as Anchors for Relative Generation
+
+**Approach:** Use pinned colors as anchor points and generate remaining colors relative to them, ensuring the overall result respects the selected harmony type as closely as possible.
+
+**Pros:**
+
+- Respects user's exact pinned values
+- Generates harmonious relationships where possible
+- Flexible approach that works with various pinning scenarios
+
+**Cons:**
+
+- May not achieve perfect mathematical harmony
+- Complex logic for handling multiple anchors
+- Results may vary based on which colors are pinned
+
+**Implementation complexity:** High - Complex relative generation algorithms
+**Risk Level:** Medium - May produce unexpected results
+
+### Recommendation & Rationale
+
+**RECOMMENDED SOLUTION:** Option 1 - Extract Hue from Pinned Colors and Regenerate Harmony
+
+**Why is this the best choice:**
+
+1. **Mathematical Integrity** - Ensures true harmony relationships are maintained
+2. **User Intent** - When users select a harmony type, they expect that mathematical relationship
+3. **Simplicity** - Clear, predictable behavior that's easy to understand
+4. **Performance** - Uses existing harmony generation algorithms efficiently
+
+**Key Decision Factors:**
+
+- **Performance Impact:** Minimal - reuses existing harmony algorithms
+- **User Experience:** Significantly improved - users get expected harmony relationships
+- **Complexity & Maintainability:** Medium - requires refactoring but uses established patterns
+- **Scalability:** Good - foundation for more advanced harmony features
+- **Security:** No impact
+- **Cost:** No additional cost
+
+**Alternative consideration:**
+Option 3 could be considered for advanced users who want more control, but Option 1 provides the most predictable and mathematically correct behavior for the majority of use cases.
+
+---
+
+## 3. Context & Problem Definition
+
+### Problem Statement
+
+The current color generation system breaks harmony relationships when colors are pinned. When a user pins a color and selects a harmony type like "triadic," they expect the remaining colors to form a true triadic relationship with their pinned color. Instead, the system generates a random triadic scheme and then substitutes the pinned color, destroying the mathematical harmony.
+
+This creates several issues:
+
+1. **False expectations** - Users think they're getting harmonious colors but aren't
+2. **Poor design outcomes** - Colors don't work well together because they lack true harmonic relationships
+3. **Educational misinformation** - Users learn incorrect color theory principles
+4. **Broken UX promise** - The harmony selector becomes meaningless when colors are pinned
+
+### Success Criteria
+
+- [ ] When one color is pinned, remaining colors are generated using that color's hue as the harmony base
+- [ ] Generated colors form true mathematical harmony relationships with pinned colors
+- [ ] Existing pinned colors are preserved exactly (never modified)
+- [ ] Generation algorithms use proper color theory mathematics via chroma-js
+- [ ] All existing harmony types work correctly with pinned colors
+- [ ] Performance is maintained or improved
+- [ ] API compatibility is preserved for existing components
+
+---
+
+## 4. Analysing the project before making changes
+
+### Technology & Architecture
+
+- **Frameworks & Versions:** Next.js 15 with App Router, TypeScript 5
+- **Language:** TypeScript 5
+- **Database & ORM:** Not applicable for this color system task
+- **UI & Styling:** Tailwind CSS 4, ShadCN/ui components
+- **Authentication:** Not applicable for this task
+- **Key Architectural Patterns:** Next.js App Router, Jotai state management, modular lib structure
+- **Relevant Existing Components:**
+  - `generateColorVariation.ts` - Main color generation logic that needs fixing
+  - `lib/color/harmony-algorithms.ts` - Contains harmony generation functions using chroma-js (already exists)
+  - `lib/color/contrast-calculator.ts` - Contrast and accessibility functions (already exists)
+  - `lib/color/color-converter.ts` - Color conversion utilities (already exists)
+  - `ColorTab.tsx` - UI component that calls the generation function
+  - `design-system.ts` types - ColorSystem and related TypeScript interfaces
+- **Other relevant existing code:**
+  - Jotai atoms for color state and pinning state
+  - chroma-js integration already implemented in modular color system
+  - useCreativeIteration hook for managing generation history
+
+### Fitting in with what is already there
+
+The current codebase already has the well-structured modular color system architecture with harmony algorithms implemented using chroma-js. The modular files (`harmony-algorithms.ts`, `contrast-calculator.ts`, `color-converter.ts`) are already in place and working correctly.
+
+The fix needs to modify only the main `generateColorVariation` function to use these existing harmony algorithms correctly when colors are pinned, rather than generating a full scheme and then substituting pinned colors.
+
+The pinning logic already exists in the UI and state management - we just need to fix how it's applied in the generation algorithm.
+
+### Do we need to refactor existing code to acheive our aims while keeping the code as clean as possible?
+
+The `generateColorVariation` function needs refactoring, but since the modular structure already exists, this is straightforward:
+
+**Proposed changes:**
+
+1. **Modify generation flow** - Instead of "generate full scheme then substitute," use "identify pinned colors, extract base hue, generate remaining positions"
+2. **Add pinned color analysis utilities** - Functions to extract hue from pinned colors and determine which positions need generation
+3. **Update harmony application logic** - Apply existing harmony algorithms only to unpinned positions
+4. **Preserve existing API** - Maintain the same function signature for compatibility
+
+**Trade-off analysis:**
+
+- **Additional work:** Low-Medium - existing modular structure makes this focused on one file
+- **Benefits:**
+  - Mathematically correct color harmonies
+  - User expectations met
+  - Leverages existing chroma-js harmony algorithms properly
+  - Better color theory education for users
+
+The benefits strongly justify the refactoring work, especially since this fixes a fundamental design flaw while leveraging the existing well-architected modular system.
+
+---
+
+## 5. Development Mode Context
+
+- **Project Stage:** This is a new application in active development.
+- **Breaking Changes:** Breaking changes are ok where absolutely necessary.
+- **Data Handling:** Data loss acceptable where necessary.
+- **User Base:** Users are internal staff, not end users.
+- **Priority:** Prioritise speed and simplicity over data preservation.
+- **Aggressive Refactoring Allowed:** delete/recreate components as needed where it makes sense to do so.
+
+---
+
+## 6. State Management
+
+The existing Jotai-based state management doesn't need changes. The pinning state is already properly tracked in `pinningStateAtom` and the current colors are stored in `colorsAtom`. The generation function will continue to receive this state as parameters and return updated colors.
+
+No changes needed to:
+
+- `colorsAtom`
+- `pinningStateAtom`
+- `colorSchemeAtom`
+- UI components that manage this state
+
+---
+
+## 7. Implementation Plan
+
+### Phase 1: Add Pinned Color Analysis Functions (1 hour)
+
+1. Create utility functions in `generateColorVariation.ts`:
+   - `extractBaseHueFromPinnedColors()` - Get hue from first pinned color
+   - `getColorPositionsToGenerate()` - Identify which color positions need generation
+   - `mapHarmonyColorsToPositions()` - Map generated harmony colors to specific positions
+
+### Phase 2: Refactor Main Generation Logic (2 hours)
+
+2. Modify `generateColorVariation` function:
+   - Check if any colors are pinned
+   - If pinned: extract base hue from pinned colors
+   - If not pinned: use random hue (existing behavior)
+   - Generate harmony scheme using the correct base hue
+   - Apply generated colors only to unpinned positions
+   - Preserve pinned colors exactly
+
+### Phase 3: Update Harmony Application (1 hour)
+
+3. Modify how harmony schemes are applied:
+   - Instead of generating all 4+ colors then substituting
+   - Generate harmony scheme and selectively apply to unpinned positions
+   - Ensure primary/secondary/accent/background roles are correctly assigned
+
+### Phase 4: Testing and Validation (1 hour)
+
+4. Test the new generation logic:
+   - Test with no pinned colors (should work identically to current)
+   - Test with one pinned color (should generate true harmony)
+   - Test with multiple pinned colors (should use first as base)
+   - Verify all harmony types work correctly
+   - Ensure existing UI components work unchanged
+
+---
+
+## 8. Task Completion Tracking
+
+### Real-Time Progress Tracking
+
+- [ ] Phase 1: Pinned color analysis utilities created
+- [ ] Phase 2: Main generation logic refactored
+- [ ] Phase 3: Harmony application logic updated
+- [ ] Phase 4: Testing completed and verified
+
+Update progress as each phase completes and report any issues or unexpected findings during implementation.
+
+---
+
+## 9. File Structure & Organization
+
+### Files to be modified:
+
+- `/lib/color/generateColorVariation.ts` - Main file requiring refactoring to fix pinned color logic
+
+### Files that already exist and work correctly:
+
+- `/lib/color/harmony-algorithms.ts` - Harmony generation functions using chroma-js (no changes needed)
+- `/lib/color/contrast-calculator.ts` - Contrast and accessibility functions (no changes needed)
+- `/lib/color/color-converter.ts` - Color conversion utilities (no changes needed)
+
+### Files to remain unchanged:
+
+- `/components/builder/color/ColorTab.tsx` - UI component should continue working
+- `/atoms/design-system.ts` - State management atoms are correct
+- All existing harmony algorithm functions - these are already correct
+
+### New functions to be added:
+
+Within `generateColorVariation.ts`:
+
+- `extractBaseHueFromPinnedColors(colors, options)`
+- `getUnpinnedColorPositions(options)`
+- `mapHarmonyToColorSystem(harmonyColors, pinnedColors, options)`
+
+---

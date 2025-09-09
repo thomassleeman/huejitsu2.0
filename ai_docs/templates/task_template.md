@@ -94,9 +94,9 @@ Use your judgment to determine when strategic analysis is needed vs direct imple
 **Implementation complecity:** [Low/Medium/High] - [Brief justification]
 **Risk Level:** [Low/Medium/High] - [Primary risk factors and mitigation strategies]
 
-### Recommendation & Rationale
+### Chosen Solution & Rationale
 
-** RECOMMENDED SOLUTION: ** Option [x] - [Solution Name]
+** CHOSEN SOLUTION: ** Option [x] - [Solution Name]
 
 **Why is this the best choice:**
 

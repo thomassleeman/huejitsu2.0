@@ -10,6 +10,7 @@ import {
 import { generateColorVariation } from "@/lib/color/generateColorVariation";
 import type { ColorSchemeType } from "@/lib/color/harmony-algorithms";
 import { useCreativeIteration } from "@/hooks/useCreativeIteration";
+import { useHarmonyCompatibility } from "@/hooks/useHarmonyCompatibility";
 import {
   getOptimalTextColor,
   calculateContrast,
@@ -29,6 +30,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccessibilityPanel } from "@/components/accessibility/AccessibilityPanel";
 import { AccessibilityWarningBadge } from "@/components/accessibility/AccessibilityWarningBadge";
+import { HarmonyTooltip } from "@/components/ui/EducationalTooltip";
 
 const COLOR_SCHEMES = [
   { value: "monochromatic", label: "Monochromatic" },
@@ -44,17 +46,36 @@ export function ColorTab() {
   const [pinning, setPinning] = useAtom(pinningStateAtom);
   const [selectedScheme, setSelectedScheme] = useAtom(colorSchemeAtom);
 
-  // Generation function that respects pinning
+  // Get harmony compatibility state
+  const harmonyCompatibility = useHarmonyCompatibility();
+
+  // Generation function that respects pinning and compatibility
   const generateVariation = useCallback(() => {
+    // If random is selected and there are compatibility constraints, pick from compatible options
+    let effectiveScheme = selectedScheme;
+    if (
+      selectedScheme === "random" &&
+      harmonyCompatibility.compatibleHarmonies.length > 0
+    ) {
+      const compatibleOptions = harmonyCompatibility.compatibleHarmonies;
+      effectiveScheme =
+        compatibleOptions[Math.floor(Math.random() * compatibleOptions.length)];
+    }
+
     return generateColorVariation(colors, {
       pinnedPrimary: pinning.colors.primary,
       pinnedSecondary: pinning.colors.secondary,
       pinnedAccent: pinning.colors.accent,
       pinnedBackground: pinning.colors.background,
       pinnedText: pinning.colors.text,
-      colorScheme: selectedScheme === "random" ? undefined : selectedScheme,
+      colorScheme: effectiveScheme === "random" ? undefined : effectiveScheme,
     });
-  }, [colors, pinning.colors, selectedScheme]);
+  }, [
+    colors,
+    pinning.colors,
+    selectedScheme,
+    harmonyCompatibility.compatibleHarmonies,
+  ]);
 
   // Creative iteration hook
   const iteration = useCreativeIteration({
@@ -271,16 +292,74 @@ export function ColorTab() {
                     <SelectItem value="random">
                       🎲 Random (Surprise Me!)
                     </SelectItem>
-                    {COLOR_SCHEMES.map((scheme) => (
-                      <SelectItem key={scheme.value} value={scheme.value}>
-                        {scheme.label}
-                      </SelectItem>
-                    ))}
+                    {harmonyCompatibility.harmonyOptions.map(
+                      (harmonyOption) => {
+                        const scheme = COLOR_SCHEMES.find(
+                          (s) => s.value === harmonyOption.type
+                        );
+                        if (!scheme) return null;
+
+                        return (
+                          <HarmonyTooltip
+                            key={harmonyOption.type}
+                            harmonyType={harmonyOption.label}
+                            isCompatible={harmonyOption.isCompatible}
+                            tooltip={harmonyOption.tooltip}
+                            incompatibilityReason={
+                              harmonyOption.incompatibilityReason
+                            }
+                          >
+                            <SelectItem
+                              value={harmonyOption.type}
+                              disabled={!harmonyOption.isCompatible}
+                              className={
+                                !harmonyOption.isCompatible
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }
+                            >
+                              <span
+                                className={
+                                  !harmonyOption.isCompatible
+                                    ? "text-muted-foreground"
+                                    : ""
+                                }
+                              >
+                                {harmonyOption.label}
+                                {!harmonyOption.isCompatible && " 🚫"}
+                              </span>
+                            </SelectItem>
+                          </HarmonyTooltip>
+                        );
+                      }
+                    )}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {getSchemeDescription(selectedScheme)}
                 </p>
+                {harmonyCompatibility.pinnedColorCount > 0 && (
+                  <div className="mt-2 p-2 bg-muted rounded-md text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        📌 {harmonyCompatibility.pinnedColorCount} color
+                        {harmonyCompatibility.pinnedColorCount > 1 ? "s" : ""}{" "}
+                        pinned
+                      </span>
+                      {harmonyCompatibility.hasIncompatibleOptions && (
+                        <span className="text-muted-foreground">
+                          • Some harmonies disabled
+                        </span>
+                      )}
+                    </div>
+                    {harmonyCompatibility.hasIncompatibleOptions && (
+                      <p className="text-muted-foreground mt-1">
+                        Hover over disabled options to learn about color theory
+                        relationships
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
