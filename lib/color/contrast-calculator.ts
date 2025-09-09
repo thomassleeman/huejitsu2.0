@@ -17,13 +17,7 @@ export function calculateContrast(
   background: string
 ): number {
   try {
-    const l1 = chroma(foreground).luminance();
-    const l2 = chroma(background).luminance();
-
-    const lighter = Math.max(l1, l2);
-    const darker = Math.min(l1, l2);
-
-    return (lighter + 0.05) / (darker + 0.05);
+    return chroma.contrast(foreground, background);
   } catch (error) {
     console.warn(
       `Invalid color formats for contrast calculation: ${foreground}, ${background}`

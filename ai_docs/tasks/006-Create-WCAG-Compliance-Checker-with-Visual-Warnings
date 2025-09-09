@@ -1,0 +1,329 @@
+# AI Task Planning Template
+
+---
+
+## 1. Task Overview
+
+### Task Title
+
+**Title:** Create WCAG Compliance Checker with Visual Warnings
+
+### Goal Statement
+
+**Goal:** Build user-facing components that expose the existing accessibility testing infrastructure to provide real-time WCAG compliance checking, visual contrast ratio displays, color blindness simulation, and accessibility improvement suggestions within the Color tab. This will help users create accessible color schemes by providing immediate feedback on contrast ratios and accessibility compliance levels.
+
+---
+
+## 2. Strategic Analysis & solution options
+
+### Problem Context
+
+HueJitsu has comprehensive accessibility testing utilities in `lib/color/accessibility-checker.ts` that analyze WCAG compliance, contrast ratios, and color blindness compatibility. However, these capabilities are not exposed in the user interface, meaning users receive no feedback about accessibility issues or guidance on creating compliant color schemes. This creates a gap between the system's accessibility capabilities and user awareness.
+
+### SOLUTION OPTIONS ANALYSIS
+
+#### Option 1: Integrated Accessibility Panel in Color Tab
+
+**Approach:** Create accessibility components that integrate directly into the existing ColorTab interface, showing real-time compliance status, warnings, and suggestions alongside color controls.
+
+**Pros:**
+
+- Contextual feedback right where users make color decisions
+- Real-time updates as colors change
+- Follows existing design patterns and component structure
+- Integrates seamlessly with current Jotai state management
+- Educational - teaches users about accessibility while they work
+
+**Cons:**
+
+- Could clutter the existing ColorTab interface
+- Requires careful UX design to avoid overwhelming users
+
+**Implementation complexity:** Medium - New components with state integration
+**Risk Level:** Low - Builds on existing accessibility infrastructure
+
+#### Option 2: Separate Accessibility Tab
+
+**Approach:** Create a dedicated "Accessibility" tab that provides comprehensive accessibility analysis and reporting.
+
+**Pros:**
+
+- Dedicated space for detailed accessibility analysis
+- Doesn't interfere with existing color workflow
+- Can provide more comprehensive reporting and guidance
+
+**Cons:**
+
+- Users might ignore accessibility if it's separate from color decisions
+- Less likely to be used during the creative process
+- Creates additional navigation complexity
+
+**Implementation complexity:** High - New tab, routing, and comprehensive interface
+**Risk Level:** Medium - More complex integration with tab system
+
+#### Option 3: Accessibility Overlay System
+
+**Approach:** Create toggle-able overlays and badges that appear on color controls when accessibility issues are detected.
+
+**Pros:**
+
+- Non-intrusive but visible when needed
+- Can be toggled on/off based on user preference
+- Contextual to specific color decisions
+
+**Cons:**
+
+- May be easy to ignore or dismiss
+- Limited space for detailed guidance
+- Complex state management for overlay positioning
+
+**Implementation complexity:** High - Complex overlay positioning and state management
+**Risk Level:** Medium - Complex UI interactions and positioning
+
+### Recommendation & Rationale
+
+**RECOMMENDED SOLUTION:** Option 1 - Integrated Accessibility Panel in Color Tab
+
+**Why is this the best choice:**
+
+1. **Contextual Education** - Users learn about accessibility while making color decisions
+2. **Real-time Feedback** - Immediate visibility into how color changes affect accessibility
+3. **Existing Infrastructure** - Leverages all existing accessibility utilities without additional complexity
+4. **State Integration** - Natural fit with existing Jotai atoms and color state management
+5. **User Adoption** - Most likely to be seen and used since it's integrated into the primary workflow
+
+**Key Decision Factors:**
+
+- **User Experience:** Provides education and feedback exactly when users need it
+- **Development Efficiency:** Builds directly on existing accessibility infrastructure
+- **Accessibility Impact:** Maximum likelihood of creating accessible color schemes
+- **Maintainability:** Fits within existing component and state architecture
+
+---
+
+## 3. Context & Problem Definition
+
+### Problem Statement
+
+HueJitsu's color system generates accessible colors by default using AA compliance targets, but users have no visibility into accessibility metrics, warnings, or improvement opportunities. The comprehensive accessibility testing capabilities exist but are hidden from users, preventing them from making informed decisions about contrast ratios, color blindness compatibility, and WCAG compliance levels.
+
+### Success Criteria
+
+- [ ] Real-time contrast ratio display for all color pairs with visual pass/fail indicators
+- [ ] WCAG AA and AAA compliance badges showing current compliance status
+- [ ] Color blindness simulation showing how colors appear to users with different vision types
+- [ ] Accessibility score summary with overall rating (excellent/good/fair/poor)
+- [ ] Specific improvement suggestions with actionable recommendations
+- [ ] Warning badges on color controls when accessibility issues are detected
+- [ ] Educational tooltips explaining WCAG standards and color blindness types
+
+---
+
+## 4. Analysing the project before making changes
+
+### Technology & Architecture
+
+- **Frameworks & Versions:** Next.js 15 with App Router, React 19, TypeScript 5
+- **Language:** TypeScript with strict mode enabled
+- **UI & Styling:** ShadCN/ui components with Tailwind CSS 4
+- **State Management:** Jotai atoms for design system state with localStorage persistence
+- **Key Architectural Patterns:** Atomic state management, derived atoms, CSS custom properties
+- **Relevant Existing Components:**
+  - `components/builder/ColorTab.tsx` - Current color interface
+  - `lib/color/accessibility-checker.ts` - Complete accessibility testing utilities
+  - `atoms/design-system.ts` - Color state management with colorsAtom
+  - `components/ui/` - ShadCN component library
+- **Other relevant existing code:**
+  - `analyzeColorAccessibility()` function for comprehensive reports
+  - `calculateContrast()` and WCAG compliance checking functions
+  - `simulateColorBlindness()` for vision simulation
+  - Existing color harmony and generation systems
+
+### Fitting in with what is already there
+
+The accessibility checker should integrate seamlessly with the existing color system:
+
+1. **State Integration:** Create derived atoms that use existing accessibility utilities to analyze current colors
+2. **Component Architecture:** Add accessibility components to ColorTab without disrupting existing workflow
+3. **Design Consistency:** Use existing ShadCN components and design patterns
+4. **Performance:** Leverage Jotai's surgical re-renders to update only when colors change
+
+### Do we need to refactor existing code to achieve our aims while keeping the code as clean as possible?
+
+Minimal refactoring required. The existing accessibility infrastructure is complete and well-architected. We need to:
+
+1. **Add derived atoms** that analyze accessibility using existing utilities
+2. **Extend ColorTab** with new accessibility components
+3. **Create reusable components** for accessibility displays that can be used across the app
+4. **Maintain existing APIs** - no changes to color generation or state management needed
+
+This approach leverages existing code while adding user-facing accessibility features.
+
+---
+
+## 5. Development Mode Context
+
+- **Project Stage:** This is a new application in active development.
+- **Breaking Changes:** Breaking changes are ok where absolutely necessary.
+- **Data Handling:** Data loss acceptable where necessary.
+- **User Base:** Users are internal staff, not end users.
+- **Priority:** Prioritise speed and simplicity over data preservation.
+- **Aggressive Refactoring Allowed:** delete/recreate components as needed where it makes sense to do so.
+
+---
+
+## 8. Frontend Changes
+
+### New Components
+
+**Accessibility Components:**
+
+- `AccessibilityPanel.tsx` - Main accessibility analysis panel for ColorTab
+- `ContrastChecker.tsx` - Displays contrast ratios with visual indicators
+- `ComplianceIndicators.tsx` - Shows WCAG AA/AAA badges and status
+- `ColorBlindnessSimulator.tsx` - Visual simulation of different color vision types
+- `AccessibilityScore.tsx` - Overall accessibility rating and score
+- `ImprovementSuggestions.tsx` - Actionable recommendations for better accessibility
+- `AccessibilityTooltip.tsx` - Educational tooltips explaining standards
+
+**Warning System:**
+
+- `AccessibilityWarningBadge.tsx` - Warning indicators for color controls
+- `AccessibilityAlerts.tsx` - System for displaying accessibility warnings
+
+### State Management
+
+**New Derived Atoms:**
+
+```typescript
+// atoms/accessibility.ts
+export const accessibilityReportAtom = atom((get) => {
+  const colors = get(colorsAtom);
+  return analyzeColorAccessibility(colors);
+});
+
+export const contrastRatiosAtom = atom((get) => {
+  const colors = get(colorsAtom);
+  return calculateAllContrastRatios(colors);
+});
+
+export const colorBlindnessTestAtom = atom((get) => {
+  const colors = get(colorsAtom);
+  return checkColorBlindnessCompatibility(Object.values(colors));
+});
+```
+
+These atoms automatically update when colors change, providing real-time accessibility analysis.
+
+---
+
+## 9. Implementation Plan
+
+### Phase 1: Core Accessibility State (2-3 hours)
+
+1. **Create accessibility atoms**
+
+   - Set up `atoms/accessibility.ts` with derived atoms
+   - Integrate with existing `analyzeColorAccessibility()` function
+   - Test real-time updates when colors change
+
+2. **Build ContrastChecker component**
+   - Display all contrast ratios with visual indicators
+   - Show WCAG AA/AAA compliance status
+   - Add specific ratio numbers (e.g., "4.7:1 - AA Pass")
+
+### Phase 2: Visual Accessibility Components (3-4 hours)
+
+3. **Create ComplianceIndicators component**
+
+   - Build green/yellow/red indicator system
+   - Show specific compliance levels achieved
+   - Add tooltips explaining requirements
+
+4. **Build ColorBlindnessSimulator component**
+
+   - Visual preview of colors as seen by different vision types
+   - Show protanopia, deuteranopia, and tritanopia simulations
+   - Include severity indicators and explanations
+
+5. **Create AccessibilityScore component**
+   - Overall score display (0-100)
+   - Visual rating (excellent/good/fair/poor)
+   - Breakdown by category (contrast, color blindness, usability)
+
+### Phase 3: Improvement and Warning System (2-3 hours)
+
+6. **Build ImprovementSuggestions component**
+
+   - List specific, actionable recommendations
+   - Show before/after comparisons when possible
+   - Prioritize suggestions by impact
+
+7. **Create warning badge system**
+   - Add warning indicators to color controls
+   - Context-aware warnings based on specific issues
+   - Toggle-able visibility
+
+### Phase 4: Integration and Polish (1-2 hours)
+
+8. **Integrate with ColorTab**
+
+   - Add AccessibilityPanel to existing ColorTab layout
+   - Ensure responsive design across screen sizes
+   - Test integration with existing color generation workflow
+
+9. **Add educational tooltips**
+   - Explain WCAG standards and requirements
+   - Provide context about color blindness types
+   - Help users understand accessibility importance
+
+---
+
+## 10. Task Completion Tracking
+
+### Real-Time Progress Tracking
+
+Update progress as each component is completed:
+
+- [ ] Phase 1: Accessibility atoms and basic contrast checking
+- [ ] Phase 2: Visual accessibility components and simulations
+- [ ] Phase 3: Warning system and improvement suggestions
+- [ ] Phase 4: ColorTab integration and educational features
+
+Mark Task 16 in tasklist.md as ✅ COMPLETED when all accessibility components are functional and integrated.
+
+---
+
+## 11. File Structure & Organization
+
+### Files to Create:
+
+**Accessibility State:**
+
+- `atoms/accessibility.ts` - Derived atoms for accessibility analysis
+
+**Core Components:**
+
+- `components/accessibility/AccessibilityPanel.tsx` - Main accessibility interface
+- `components/accessibility/ContrastChecker.tsx` - Contrast ratio display
+- `components/accessibility/ComplianceIndicators.tsx` - WCAG compliance badges
+- `components/accessibility/ColorBlindnessSimulator.tsx` - Vision simulation
+- `components/accessibility/AccessibilityScore.tsx` - Overall scoring
+- `components/accessibility/ImprovementSuggestions.tsx` - Recommendations
+- `components/accessibility/AccessibilityWarningBadge.tsx` - Warning indicators
+- `components/accessibility/AccessibilityTooltip.tsx` - Educational tooltips
+
+### Files to Modify:
+
+- `components/builder/ColorTab.tsx` - Integrate accessibility panel
+- `ai_docs/tasklist.md` - Mark Task 16 subtasks as completed
+
+### Files to Test:
+
+- All accessibility components with various color combinations
+- Real-time updates when colors change
+- Integration with existing color generation workflow
+- Responsive design across screen sizes
+- Educational tooltip functionality and content accuracy
+
+---

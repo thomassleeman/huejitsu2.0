@@ -125,10 +125,27 @@ export function checkColorBlindnessCompatibility(
   colors: string[]
 ): ColorBlindnessReport {
   try {
+    // Filter out invalid colors
+    const validColors = colors.filter((color) => {
+      try {
+        if (!color || typeof color !== "string") return false;
+        chroma(color); // Test if color is valid
+        return true;
+      } catch {
+        console.warn("Skipping invalid color in color blindness check:", color);
+        return false;
+      }
+    });
+
+    if (validColors.length === 0) {
+      console.warn("No valid colors provided for color blindness check");
+      throw new Error("No valid colors to analyze");
+    }
+
     return {
-      protanopia: testColorBlindnessType(colors, "protanopia"),
-      deuteranopia: testColorBlindnessType(colors, "deuteranopia"),
-      tritanopia: testColorBlindnessType(colors, "tritanopia"),
+      protanopia: testColorBlindnessType(validColors, "protanopia"),
+      deuteranopia: testColorBlindnessType(validColors, "deuteranopia"),
+      tritanopia: testColorBlindnessType(validColors, "tritanopia"),
     };
   } catch (error) {
     console.warn("Error checking color blindness compatibility:", error);
@@ -416,12 +433,28 @@ function testColorBlindnessType(
     // Check for color pairs that become too similar
     for (let i = 0; i < simulatedColors.length - 1; i++) {
       for (let j = i + 1; j < simulatedColors.length; j++) {
-        const deltaE = chroma.deltaE(simulatedColors[i], simulatedColors[j]);
+        try {
+          // Validate colors before calculating deltaE
+          if (!simulatedColors[i] || !simulatedColors[j]) {
+            continue;
+          }
 
-        if (deltaE < 10) {
-          // Colors are too similar
-          issues.push(`Colors ${i + 1} and ${j + 1} become indistinguishable`);
-          distinguishable = false;
+          const deltaE = chroma.deltaE(simulatedColors[i], simulatedColors[j]);
+
+          if (deltaE < 10) {
+            // Colors are too similar
+            issues.push(
+              `Colors ${i + 1} and ${j + 1} become indistinguishable`
+            );
+            distinguishable = false;
+          }
+        } catch (error) {
+          // Skip invalid color pairs but log for debugging
+          console.warn(
+            `Failed to calculate deltaE for colors ${simulatedColors[i]}, ${simulatedColors[j]}:`,
+            error
+          );
+          continue;
         }
       }
     }
@@ -454,6 +487,12 @@ function simulateColorBlindness(
   type: "protanopia" | "deuteranopia" | "tritanopia"
 ): string {
   try {
+    // Validate input color
+    if (!color || typeof color !== "string" || color.trim() === "") {
+      console.warn(`Invalid color input for ${type} simulation:`, color);
+      return color || "#000000";
+    }
+
     const [r, g, b] = chroma(color).rgb();
 
     // Simplified color blindness simulation matrices

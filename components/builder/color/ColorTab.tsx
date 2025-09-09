@@ -13,7 +13,6 @@ import { useCreativeIteration } from "@/hooks/useCreativeIteration";
 import {
   getOptimalTextColor,
   calculateContrast,
-  adjustForContrast,
 } from "@/lib/color/contrast-calculator";
 import { KeyboardInstructions } from "@/components/ui/KeyboardInstructions";
 import { PinButton } from "@/components/ui/PinButton";
@@ -28,6 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AccessibilityPanel } from "@/components/accessibility/AccessibilityPanel";
+import { AccessibilityWarningBadge } from "@/components/accessibility/AccessibilityWarningBadge";
 
 const COLOR_SCHEMES = [
   { value: "monochromatic", label: "Monochromatic" },
@@ -154,6 +155,7 @@ export function ColorTab() {
                     onToggle={() => togglePin("primary")}
                     size="sm"
                   />
+                  <AccessibilityWarningBadge colorKey="primary" />
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -187,6 +189,7 @@ export function ColorTab() {
                     onToggle={() => togglePin("secondary")}
                     size="sm"
                   />
+                  <AccessibilityWarningBadge colorKey="secondary" />
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -220,6 +223,7 @@ export function ColorTab() {
                     onToggle={() => togglePin("accent")}
                     size="sm"
                   />
+                  <AccessibilityWarningBadge colorKey="accent" />
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -294,6 +298,7 @@ export function ColorTab() {
                     onToggle={() => togglePin("background")}
                     size="sm"
                   />
+                  <AccessibilityWarningBadge colorKey="background" />
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -327,6 +332,7 @@ export function ColorTab() {
                     onToggle={() => togglePin("text")}
                     size="sm"
                   />
+                  <AccessibilityWarningBadge colorKey="text" />
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -351,8 +357,9 @@ export function ColorTab() {
           </Card>
         </div>
 
-        {/* Preview Section */}
+        {/* Preview & Accessibility Section */}
         <div className="space-y-6">
+          {/* Color Preview */}
           <Card>
             <CardHeader>
               <CardTitle>Color Preview</CardTitle>
@@ -450,6 +457,9 @@ export function ColorTab() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Accessibility Analysis */}
+          <AccessibilityPanel variant="compact" />
         </div>
       </div>
 
