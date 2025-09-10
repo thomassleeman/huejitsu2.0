@@ -20,6 +20,7 @@ export interface ColorVariationOptions {
   pinnedText?: boolean;
   colorScheme?: ColorSchemeType;
   baseHue?: number;
+  backgroundThemePreference?: "light" | "dark" | "random";
 }
 
 /**
@@ -132,10 +133,26 @@ export function generateColorVariation(
 
   // Create background and text colors using chroma-js with intelligent theme detection
   const baseColor = mappedColors.primary;
-  const shouldUseLightTheme = Math.random() > 0.3; // 70% light themes preference
+
+  // Determine theme preference based on user selection
+  let shouldUseLightTheme: boolean;
+  const themePreference = options.backgroundThemePreference || "random";
+
+  if (themePreference === "light") {
+    shouldUseLightTheme = true;
+  } else if (themePreference === "dark") {
+    shouldUseLightTheme = false;
+  } else {
+    // Random behavior - maintain current 70% light preference
+    shouldUseLightTheme = Math.random() > 0.3;
+  }
 
   // Generate accessible background color that harmonizes with the color scheme
-  const accessiblePalette = generateAccessiblePalette(baseColor, "AA");
+  const accessiblePalette = generateAccessiblePalette(
+    baseColor,
+    "AA",
+    themePreference !== "random" ? themePreference : undefined
+  );
 
   // Determine actual theme based on generated colors and preference
   const isLightTheme = shouldUseLightTheme

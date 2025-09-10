@@ -6,6 +6,7 @@ import {
   colorsAtom,
   pinningStateAtom,
   colorSchemeAtom,
+  backgroundThemePreferenceAtom,
 } from "@/atoms/design-system";
 import { generateColorVariation } from "@/lib/color/generateColorVariation";
 import type { ColorSchemeType } from "@/lib/color/harmony-algorithms";
@@ -45,6 +46,9 @@ export function ColorTab() {
   const [colors, setColors] = useAtom(colorsAtom);
   const [pinning, setPinning] = useAtom(pinningStateAtom);
   const [selectedScheme, setSelectedScheme] = useAtom(colorSchemeAtom);
+  const [backgroundThemePreference, setBackgroundThemePreference] = useAtom(
+    backgroundThemePreferenceAtom
+  );
 
   // Get harmony compatibility state
   const harmonyCompatibility = useHarmonyCompatibility();
@@ -76,12 +80,14 @@ export function ColorTab() {
       pinnedBackground: pinning.colors.background,
       pinnedText: pinning.colors.text,
       colorScheme: effectiveScheme === "random" ? undefined : effectiveScheme,
+      backgroundThemePreference,
     });
   }, [
     colors,
     pinning.colors,
     selectedScheme,
     harmonyCompatibility.compatibleHarmonies,
+    backgroundThemePreference,
   ]);
 
   // Creative iteration hook
@@ -433,6 +439,42 @@ export function ColorTab() {
                     )}
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Background Theme Preference</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="backgroundTheme">Theme Direction</Label>
+                <Select
+                  value={backgroundThemePreference}
+                  onValueChange={(value: "light" | "dark" | "random") =>
+                    setBackgroundThemePreference(value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select theme preference" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">🌞 Light Background</SelectItem>
+                    <SelectItem value="dark">🌙 Dark Background</SelectItem>
+                    <SelectItem value="random">
+                      🎲 Random (Surprise Me!)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {backgroundThemePreference === "light" &&
+                    "Always generate light backgrounds for your color schemes"}
+                  {backgroundThemePreference === "dark" &&
+                    "Always generate dark backgrounds for your color schemes"}
+                  {backgroundThemePreference === "random" &&
+                    "Randomly choose light or dark backgrounds (70% light preference)"}
+                </p>
               </div>
             </CardContent>
           </Card>

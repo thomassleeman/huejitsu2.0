@@ -171,11 +171,13 @@ export function adjustForContrast(
  * Generate a color palette with guaranteed contrast compliance
  * @param baseColor - Base color to derive palette from
  * @param level - WCAG compliance level to target
+ * @param themePreference - Optional theme preference for background generation
  * @returns Object with background, text, and accent colors that meet contrast requirements
  */
 export function generateAccessiblePalette(
   baseColor: string,
-  level: "AA" | "AAA" = "AA"
+  level: "AA" | "AAA" = "AA",
+  themePreference?: "light" | "dark"
 ): {
   background: string;
   text: string;
@@ -187,10 +189,32 @@ export function generateAccessiblePalette(
     const base = chroma(baseColor);
     const isLightBase = base.luminance() > 0.5;
 
-    // Generate background
-    const background = isLightBase
-      ? chroma.mix(base, "#ffffff", 0.95).hex()
-      : chroma.mix(base, "#000000", 0.95).hex();
+    // Generate background based on theme preference
+    let background: string;
+    if (themePreference === "light") {
+      // Force light background (L > 85 in HSL)
+      const baseHsl = base.hsl();
+      const lightBackground = chroma.hsl(
+        baseHsl[0] || 0,
+        Math.min(baseHsl[1] || 0, 0.1),
+        Math.max(0.85, 0.95)
+      );
+      background = lightBackground.hex();
+    } else if (themePreference === "dark") {
+      // Force dark background (L < 25 in HSL)
+      const baseHsl = base.hsl();
+      const darkBackground = chroma.hsl(
+        baseHsl[0] || 0,
+        Math.min(baseHsl[1] || 0, 0.1),
+        Math.min(0.25, 0.05)
+      );
+      background = darkBackground.hex();
+    } else {
+      // Use current behavior (best accessible regardless of lightness)
+      background = isLightBase
+        ? chroma.mix(base, "#ffffff", 0.95).hex()
+        : chroma.mix(base, "#000000", 0.95).hex();
+    }
 
     // Generate text with proper contrast
     const textColor = getOptimalTextColor(background);

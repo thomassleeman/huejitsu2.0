@@ -123,6 +123,11 @@ export const colorSchemeAtom = atomWithStorage<ColorSchemeType | "random">(
   "random"
 );
 
+// Background theme preference atom
+export const backgroundThemePreferenceAtom = atomWithStorage<
+  "light" | "dark" | "random"
+>("huejitsu-background-theme-preference", "random");
+
 // Creative iteration atoms
 export const pinningStateAtom = atomWithStorage<PinningState>(
   "huejitsu-pinning",
