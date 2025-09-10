@@ -79,26 +79,67 @@ function mapHarmonyToColorSystem(
   options: ColorVariationOptions
 ): { primary: string; secondary: string; accent: string } {
   const unpinned = getUnpinnedPositions(options);
-  let harmonyIndex = 0;
 
-  // If we have a pinned color that was used as the base, it should be the first harmony color
-  // So we start assigning from the second harmony color for unpinned positions
-  const pinnedBaseHue = currentColors
-    ? extractBaseHueFromPinnedColors(currentColors, options)
-    : null;
-  const startIndex = pinnedBaseHue !== null ? 1 : 0;
+  // If nothing is pinned, use harmony colors directly
+  if (
+    !currentColors ||
+    (!options.pinnedPrimary &&
+      !options.pinnedSecondary &&
+      !options.pinnedAccent)
+  ) {
+    return {
+      primary: harmonyColors[0],
+      secondary: harmonyColors[1],
+      accent: harmonyColors[2],
+    };
+  }
 
+  // Build result preserving pinned colors
   const result = {
-    primary: unpinned.primary
-      ? harmonyColors[startIndex + harmonyIndex++] || harmonyColors[0]
-      : currentColors?.primary || harmonyColors[0],
-    secondary: unpinned.secondary
-      ? harmonyColors[startIndex + harmonyIndex++] || harmonyColors[1]
-      : currentColors?.secondary || harmonyColors[1],
-    accent: unpinned.accent
-      ? harmonyColors[startIndex + harmonyIndex++] || harmonyColors[2]
-      : currentColors?.accent || harmonyColors[2],
+    primary:
+      options.pinnedPrimary && currentColors?.primary
+        ? currentColors.primary
+        : harmonyColors[0],
+    secondary:
+      options.pinnedSecondary && currentColors?.secondary
+        ? currentColors.secondary
+        : harmonyColors[1],
+    accent:
+      options.pinnedAccent && currentColors?.accent
+        ? currentColors.accent
+        : harmonyColors[2],
   };
+
+  // CRITICAL: If we have pinned colors, we need to map the harmony colors
+  // to ONLY the unpinned positions while maintaining relationships
+  let harmonyIndex = 0;
+  const pinnedCount = [
+    options.pinnedPrimary,
+    options.pinnedSecondary,
+    options.pinnedAccent,
+  ].filter(Boolean).length;
+
+  if (pinnedCount === 1) {
+    // One color pinned: use remaining harmony colors for unpinned positions
+    if (!options.pinnedPrimary && unpinned.primary) {
+      result.primary = harmonyColors[1] || harmonyColors[0];
+      harmonyIndex++;
+    }
+    if (!options.pinnedSecondary && unpinned.secondary) {
+      result.secondary = harmonyColors[harmonyIndex + 1] || harmonyColors[1];
+      harmonyIndex++;
+    }
+    if (!options.pinnedAccent && unpinned.accent) {
+      result.accent = harmonyColors[harmonyIndex + 1] || harmonyColors[2];
+    }
+  } else if (pinnedCount === 2) {
+    // Two colors pinned: use the one remaining harmony color for the unpinned position
+    const unpinnedColor = harmonyColors[1] || harmonyColors[0];
+    if (unpinned.primary) result.primary = unpinnedColor;
+    if (unpinned.secondary) result.secondary = unpinnedColor;
+    if (unpinned.accent) result.accent = unpinnedColor;
+  }
+  // If all 3 are pinned, we keep the pinned colors (already set above)
 
   return result;
 }
