@@ -191,29 +191,43 @@ export function generateAccessiblePalette(
 
     // Generate background based on theme preference
     let background: string;
+
     if (themePreference === "light") {
-      // Force light background (L > 85 in HSL)
+      // Light backgrounds: L: 85-98%, S: 2-15%, slight hue variation
       const baseHsl = base.hsl();
-      const lightBackground = chroma.hsl(
-        baseHsl[0] || 0,
-        Math.min(baseHsl[1] || 0, 0.1),
-        Math.max(0.85, 0.95)
-      );
+      const hue = (baseHsl[0] || 0) + (Math.random() * 20 - 10); // ±10° variation
+      const saturation = 0.02 + Math.random() * 0.13; // 2-15% range
+      const lightness = 0.85 + Math.random() * 0.13; // 85-98% range
+
+      const lightBackground = chroma.hsl(hue, saturation, lightness);
       background = lightBackground.hex();
     } else if (themePreference === "dark") {
-      // Force dark background (L < 25 in HSL)
+      // Dark backgrounds: L: 2-18%, S: 2-20%, slight hue variation
       const baseHsl = base.hsl();
-      const darkBackground = chroma.hsl(
-        baseHsl[0] || 0,
-        Math.min(baseHsl[1] || 0, 0.1),
-        Math.min(0.25, 0.05)
-      );
+      const hue = (baseHsl[0] || 0) + (Math.random() * 20 - 10); // ±10° variation
+      const saturation = 0.02 + Math.random() * 0.18; // 2-20% range
+      const lightness = 0.02 + Math.random() * 0.16; // 2-18% range
+
+      const darkBackground = chroma.hsl(hue, saturation, lightness);
       background = darkBackground.hex();
     } else {
-      // Use current behavior (best accessible regardless of lightness)
-      background = isLightBase
-        ? chroma.mix(base, "#ffffff", 0.95).hex()
-        : chroma.mix(base, "#000000", 0.95).hex();
+      // Random: use existing logic but with proper variety
+      const isLightBase = base.luminance() > 0.5;
+      if (isLightBase) {
+        // Generate light background with variety
+        const baseHsl = base.hsl();
+        const hue = (baseHsl[0] || 0) + (Math.random() * 20 - 10);
+        const saturation = 0.02 + Math.random() * 0.13;
+        const lightness = 0.85 + Math.random() * 0.13;
+        background = chroma.hsl(hue, saturation, lightness).hex();
+      } else {
+        // Generate dark background with variety
+        const baseHsl = base.hsl();
+        const hue = (baseHsl[0] || 0) + (Math.random() * 20 - 10);
+        const saturation = 0.02 + Math.random() * 0.18;
+        const lightness = 0.02 + Math.random() * 0.16;
+        background = chroma.hsl(hue, saturation, lightness).hex();
+      }
     }
 
     // Generate text with proper contrast

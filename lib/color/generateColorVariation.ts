@@ -175,42 +175,21 @@ export function generateColorVariation(
   // Create background and text colors using chroma-js with intelligent theme detection
   const baseColor = mappedColors.primary;
 
-  // Determine theme preference based on user selection
-  let shouldUseLightTheme: boolean;
-  const themePreference = options.backgroundThemePreference || "random";
-
-  if (themePreference === "light") {
-    shouldUseLightTheme = true;
-  } else if (themePreference === "dark") {
-    shouldUseLightTheme = false;
-  } else {
-    // Random behavior - maintain current 70% light preference
-    shouldUseLightTheme = Math.random() > 0.3;
-  }
-
   // Generate accessible background color that harmonizes with the color scheme
   const accessiblePalette = generateAccessiblePalette(
     baseColor,
-    "AA",
-    themePreference !== "random" ? themePreference : undefined
+    "AA", // Keep existing level
+    options.backgroundThemePreference === "random"
+      ? undefined
+      : options.backgroundThemePreference // Pass the preference directly
   );
 
-  // Determine actual theme based on generated colors and preference
-  const isLightTheme = shouldUseLightTheme
-    ? isLight(accessiblePalette.background)
-    : !isLight(accessiblePalette.background);
+  // Use the returned background directly - it already respects the preference
+  const defaultBackground = accessiblePalette.background;
 
-  // If the preference doesn't match the accessible palette, adjust
-  const defaultBackground = isLightTheme
-    ? isLight(accessiblePalette.background)
-      ? accessiblePalette.background
-      : mix(baseColor, "#ffffff", 0.95)
-    : !isLight(accessiblePalette.background)
-    ? accessiblePalette.background
-    : mix(baseColor, "#000000", 0.95);
-
-  // Determine preferred text color based on theme for softer appearance
-  const preferredTextColor = isLightTheme
+  // Determine preferred text color based on generated background for softer appearance
+  const isGeneratedBackgroundLight = isLight(defaultBackground);
+  const preferredTextColor = isGeneratedBackgroundLight
     ? "#111827" // Dark gray for light backgrounds
     : "#f8fafc"; // Light gray for dark backgrounds
 

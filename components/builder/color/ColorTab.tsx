@@ -640,6 +640,7 @@ export function ColorTab() {
                   </Button>
                   <Button
                     variant="outline"
+                    className="bg-transparent"
                     style={{
                       borderColor: colors.secondary,
                       color: colors.secondary,
