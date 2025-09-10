@@ -18,13 +18,13 @@ export interface ColorRelationshipAnalysis {
     hue2: number;
     angleDifference: number;
   }>;
-  constraints: {
-    hasMonochromaticConstraint: boolean;
-    hasComplementaryConstraint: boolean;
-    hasTriadicConstraint: boolean;
-    hasTetradicConstraint: boolean;
-    hasAnalogousConstraint: boolean;
-    hasSplitComplementaryConstraint: boolean;
+  patternCompatibility: {
+    monochromatic: boolean;
+    complementary: boolean;
+    triadic: boolean;
+    tetradic: boolean;
+    analogous: boolean;
+    splitComplementary: boolean;
   };
 }
 
@@ -39,23 +39,46 @@ export interface HarmonyCompatibilityResult {
 
 /**
  * Calculate the hue angle between two colors in degrees (0-360)
+ * Returns the shortest angular distance
  */
 export function calculateColorAngle(color1: string, color2: string): number {
   try {
     const hue1 = chroma(color1).get("hsl.h") || 0;
     const hue2 = chroma(color2).get("hsl.h") || 0;
-
-    // Calculate the shortest angular distance
-    let diff = Math.abs(hue2 - hue1);
-    if (diff > 180) {
-      diff = 360 - diff;
-    }
-
-    return diff;
+    return calculateHueDistance(hue1, hue2);
   } catch (error) {
     console.warn("Error calculating color angle:", error);
     return 0;
   }
+}
+
+/**
+ * Calculate the shortest angular distance between two hues (0-360)
+ * Handles wraparound at 0°/360° boundary correctly
+ */
+export function calculateHueDistance(hue1: number, hue2: number): number {
+  let diff = Math.abs(hue2 - hue1);
+  if (diff > 180) {
+    diff = 360 - diff;
+  }
+  return diff;
+}
+
+/**
+ * Get the hue range (min to max) of an array of hues
+ * Handles wraparound correctly (e.g., [350, 10] has range 20, not 340)
+ */
+export function getHueRange(hues: number[]): number {
+  if (hues.length <= 1) return 0;
+
+  // Sort hues
+  const sortedHues = [...hues].sort((a, b) => a - b);
+
+  // Check if it's more efficient to wrap around
+  const directRange = sortedHues[sortedHues.length - 1] - sortedHues[0];
+  const wrapAroundRange = 360 - directRange;
+
+  return Math.min(directRange, wrapAroundRange);
 }
 
 /**
@@ -71,7 +94,202 @@ export function getColorHue(color: string): number {
 }
 
 /**
- * Analyze relationships between pinned colors
+ * Pattern detection functions for each harmony type
+ * These functions determine if a set of pinned colors can form a valid harmony pattern
+ */
+
+/**
+ * Check if pinned colors can form a monochromatic pattern
+ * All colors should be within ~30° of each other
+ */
+export function canFormMonochromaticPattern(
+  pinnedColors: Array<{ hue: number }>
+): boolean {
+  if (pinnedColors.length === 0) return true;
+  const hues = pinnedColors.map((c) => c.hue);
+  const range = getHueRange(hues);
+  return range <= 30;
+}
+
+/**
+ * Check if pinned colors can form a complementary pattern
+ * Colors should form complementary pairs (180° apart)
+ */
+export function canFormComplementaryPattern(
+  pinnedColors: Array<{ hue: number }>
+): boolean {
+  if (pinnedColors.length <= 1) return true;
+  if (pinnedColors.length === 2) {
+    // Two colors should be approximately 180° apart
+    const distance = calculateHueDistance(
+      pinnedColors[0].hue,
+      pinnedColors[1].hue
+    );
+    return Math.abs(distance - 180) <= 20;
+  }
+  // For more than 2 colors, check if they can form complementary pairs
+  const hues = pinnedColors.map((c) => c.hue);
+  return hues.every((hue1) =>
+    hues.some((hue2) => {
+      if (hue1 === hue2) return true; // Same hue
+      const distance = calculateHueDistance(hue1, hue2);
+      return Math.abs(distance - 180) <= 20; // Has complement
+    })
+  );
+}
+
+/**
+ * Check if pinned colors can form a triadic pattern
+ * Three colors evenly spaced (120° apart)
+ */
+export function canFormTriadicPattern(
+  pinnedColors: Array<{ hue: number }>
+): boolean {
+  if (pinnedColors.length <= 1) return true;
+  if (pinnedColors.length === 2) {
+    // Two colors can be part of triadic if they're 120° or 240° apart
+    const distance = calculateHueDistance(
+      pinnedColors[0].hue,
+      pinnedColors[1].hue
+    );
+    return Math.abs(distance - 120) <= 20 || Math.abs(distance - 240) <= 20;
+  }
+  if (pinnedColors.length === 3) {
+    // Check if three colors form a valid triadic pattern
+    const hues = pinnedColors.map((c) => c.hue).sort((a, b) => a - b);
+    const distances = [
+      calculateHueDistance(hues[0], hues[1]),
+      calculateHueDistance(hues[1], hues[2]),
+      calculateHueDistance(hues[0], hues[2]),
+    ];
+
+    // In a perfect triadic, we should have two ~120° distances and one ~240° distance
+    const validDistances = distances.filter(
+      (d) => Math.abs(d - 120) <= 20 || Math.abs(d - 240) <= 20
+    );
+    return validDistances.length >= 2;
+  }
+  // For more than 3 colors, check if any subset of 3 can form triadic
+  const hues = pinnedColors.map((c) => c.hue);
+  for (let i = 0; i < hues.length; i++) {
+    for (let j = i + 1; j < hues.length; j++) {
+      for (let k = j + 1; k < hues.length; k++) {
+        const subset = [{ hue: hues[i] }, { hue: hues[j] }, { hue: hues[k] }];
+        if (canFormTriadicPattern(subset)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Check if pinned colors can form a tetradic pattern
+ * Four colors forming a rectangle (90° spacing)
+ */
+export function canFormTetradicPattern(
+  pinnedColors: Array<{ hue: number }>
+): boolean {
+  if (pinnedColors.length <= 1) return true;
+  if (pinnedColors.length === 2) {
+    // Two colors can be part of tetradic if they're 90° or 180° apart
+    const distance = calculateHueDistance(
+      pinnedColors[0].hue,
+      pinnedColors[1].hue
+    );
+    return Math.abs(distance - 90) <= 20 || Math.abs(distance - 180) <= 20;
+  }
+  if (pinnedColors.length === 3) {
+    // Check if three colors can be part of a tetradic pattern
+    const hues = pinnedColors.map((c) => c.hue);
+    const distances = [];
+    for (let i = 0; i < hues.length; i++) {
+      for (let j = i + 1; j < hues.length; j++) {
+        distances.push(calculateHueDistance(hues[i], hues[j]));
+      }
+    }
+    // Should have some 90° or 180° relationships
+    return distances.some(
+      (d) => Math.abs(d - 90) <= 20 || Math.abs(d - 180) <= 20
+    );
+  }
+  if (pinnedColors.length === 4) {
+    // Check if four colors form a valid tetradic pattern
+    const hues = pinnedColors.map((c) => c.hue).sort((a, b) => a - b);
+    const distances = [];
+    for (let i = 0; i < hues.length; i++) {
+      for (let j = i + 1; j < hues.length; j++) {
+        distances.push(calculateHueDistance(hues[i], hues[j]));
+      }
+    }
+    // In tetradic, we should have 90°, 180°, and 270° relationships
+    const validDistances = distances.filter(
+      (d) =>
+        Math.abs(d - 90) <= 20 ||
+        Math.abs(d - 180) <= 20 ||
+        Math.abs(d - 270) <= 20
+    );
+    return validDistances.length >= 3;
+  }
+  // For more than 4 colors, check if any subset of 4 can form tetradic
+  return true; // Be permissive for complex cases
+}
+
+/**
+ * Check if pinned colors can form an analogous pattern
+ * Colors adjacent on color wheel (within 60° span)
+ */
+export function canFormAnalogousPattern(
+  pinnedColors: Array<{ hue: number }>
+): boolean {
+  if (pinnedColors.length === 0) return true;
+  const hues = pinnedColors.map((c) => c.hue);
+  const range = getHueRange(hues);
+  return range <= 60;
+}
+
+/**
+ * Check if pinned colors can form a split-complementary pattern
+ * Base color + two colors adjacent to its complement (150° and 210° from base)
+ */
+export function canFormSplitComplementaryPattern(
+  pinnedColors: Array<{ hue: number }>
+): boolean {
+  if (pinnedColors.length <= 1) return true;
+  if (pinnedColors.length === 2) {
+    // Two colors can be part of split-complementary if they're ~150° or ~210° apart
+    const distance = calculateHueDistance(
+      pinnedColors[0].hue,
+      pinnedColors[1].hue
+    );
+    return (
+      Math.abs(distance - 150) <= 20 ||
+      Math.abs(distance - 210) <= 20 ||
+      Math.abs(distance - 60) <= 20
+    );
+  }
+  if (pinnedColors.length === 3) {
+    // Check if three colors can form split-complementary
+    const hues = pinnedColors.map((c) => c.hue);
+    const distances = [];
+    for (let i = 0; i < hues.length; i++) {
+      for (let j = i + 1; j < hues.length; j++) {
+        distances.push(calculateHueDistance(hues[i], hues[j]));
+      }
+    }
+    // Should have relationships around 60°, 150°, or 210°
+    return distances.some(
+      (d) =>
+        Math.abs(d - 60) <= 20 ||
+        Math.abs(d - 150) <= 20 ||
+        Math.abs(d - 210) <= 20
+    );
+  }
+  // For more colors, be permissive
+  return true;
+}
+
+/**
+ * Analyze relationships between pinned colors using pattern-based compatibility
  */
 export function analyzeColorRelationships(
   colors: ColorSystem,
@@ -123,42 +341,26 @@ export function analyzeColorRelationships(
     }
   }
 
-  // Determine constraints based on relationships
-  const constraints = {
-    hasMonochromaticConstraint: relationships.some(
-      (r) => r.angleDifference > 30
-    ),
-    hasComplementaryConstraint: relationships.some(
-      (r) => Math.abs(r.angleDifference - 180) > 20
-    ),
-    hasTriadicConstraint: relationships.some(
-      (r) =>
-        Math.abs(r.angleDifference - 120) > 20 &&
-        Math.abs(r.angleDifference - 240) > 20
-    ),
-    hasTetradicConstraint: relationships.some(
-      (r) =>
-        Math.abs(r.angleDifference - 90) > 20 &&
-        Math.abs(r.angleDifference - 180) > 20 &&
-        Math.abs(r.angleDifference - 270) > 20
-    ),
-    hasAnalogousConstraint: relationships.some((r) => r.angleDifference > 60),
-    hasSplitComplementaryConstraint: relationships.some(
-      (r) =>
-        Math.abs(r.angleDifference - 150) > 20 &&
-        Math.abs(r.angleDifference - 210) > 20
-    ),
+  // Determine pattern compatibility using new pattern detection functions
+  const patternCompatibility = {
+    monochromatic: canFormMonochromaticPattern(pinnedColors),
+    complementary: canFormComplementaryPattern(pinnedColors),
+    triadic: canFormTriadicPattern(pinnedColors),
+    tetradic: canFormTetradicPattern(pinnedColors),
+    analogous: canFormAnalogousPattern(pinnedColors),
+    splitComplementary: canFormSplitComplementaryPattern(pinnedColors),
   };
 
   return {
     pinnedColors,
     relationships,
-    constraints,
+    patternCompatibility,
   };
 }
 
 /**
  * Check if a specific harmony type is compatible with pinned colors
+ * Uses pattern-based compatibility instead of constraint-based logic
  */
 export function isHarmonyCompatible(
   harmonyType: ColorSchemeType,
@@ -174,16 +376,20 @@ export function isHarmonyCompatible(
     return { isCompatible: true };
   }
 
-  const { constraints, relationships } = analysis;
+  const { patternCompatibility, relationships, pinnedColors } = analysis;
 
   switch (harmonyType) {
     case "monochromatic":
-      if (constraints.hasMonochromaticConstraint) {
+      if (!patternCompatibility.monochromatic) {
+        const hues = pinnedColors.map((c) => c.hue);
+        const range = getHueRange(hues);
         return {
           isCompatible: false,
-          reason: "Pinned colors are too far apart for monochromatic harmony",
+          reason: `Pinned colors span ${range.toFixed(
+            0
+          )}° which is too wide for monochromatic harmony`,
           educationalTooltip:
-            "Monochromatic schemes use variations of a single hue. Your pinned colors span multiple hues on the color wheel.",
+            "Monochromatic schemes use variations of a single hue (within ~30°). Your pinned colors span multiple hues on the color wheel.",
         };
       }
       return {
@@ -193,16 +399,12 @@ export function isHarmonyCompatible(
       };
 
     case "complementary":
-      if (constraints.hasComplementaryConstraint) {
-        const problematicRelationship = relationships.find(
-          (r) => Math.abs(r.angleDifference - 180) > 20
-        );
+      if (!patternCompatibility.complementary) {
         return {
           isCompatible: false,
-          reason: "Pinned colors don't form complementary relationships",
-          educationalTooltip: `Complementary colors sit directly opposite each other on the color wheel (180° apart). Your pinned colors are ${problematicRelationship?.angleDifference.toFixed(
-            0
-          )}° apart.`,
+          reason: "Pinned colors cannot form valid complementary pairs",
+          educationalTooltip:
+            "Complementary colors sit directly opposite each other on the color wheel (180° apart). Your pinned colors don't form complementary relationships.",
         };
       }
       return {
@@ -212,10 +414,10 @@ export function isHarmonyCompatible(
       };
 
     case "triadic":
-      if (constraints.hasTriadicConstraint) {
+      if (!patternCompatibility.triadic) {
         return {
           isCompatible: false,
-          reason: "Pinned colors don't form triadic relationships",
+          reason: "Pinned colors cannot form a valid triadic pattern",
           educationalTooltip:
             "Triadic schemes use three colors evenly spaced around the color wheel (120° apart). Your pinned colors don't fit this pattern.",
         };
@@ -227,10 +429,10 @@ export function isHarmonyCompatible(
       };
 
     case "tetradic":
-      if (constraints.hasTetradicConstraint) {
+      if (!patternCompatibility.tetradic) {
         return {
           isCompatible: false,
-          reason: "Pinned colors don't form tetradic relationships",
+          reason: "Pinned colors cannot form a valid tetradic pattern",
           educationalTooltip:
             "Tetradic (rectangle) schemes use four colors forming two complementary pairs. Your pinned colors don't fit this geometric pattern.",
         };
@@ -242,16 +444,16 @@ export function isHarmonyCompatible(
       };
 
     case "analogous":
-      if (constraints.hasAnalogousConstraint) {
-        const problematicRelationship = relationships.find(
-          (r) => r.angleDifference > 60
-        );
+      if (!patternCompatibility.analogous) {
+        const hues = pinnedColors.map((c) => c.hue);
+        const range = getHueRange(hues);
         return {
           isCompatible: false,
-          reason: "Pinned colors are too far apart for analogous harmony",
-          educationalTooltip: `Analogous colors are adjacent on the color wheel (typically within 60°). Your pinned colors are ${problematicRelationship?.angleDifference.toFixed(
+          reason: `Pinned colors span ${range.toFixed(
             0
-          )}° apart.`,
+          )}° which is too wide for analogous harmony`,
+          educationalTooltip:
+            "Analogous colors are adjacent on the color wheel (typically within 60°). Your pinned colors span too wide a range.",
         };
       }
       return {
@@ -261,10 +463,11 @@ export function isHarmonyCompatible(
       };
 
     case "split-complementary":
-      if (constraints.hasSplitComplementaryConstraint) {
+      if (!patternCompatibility.splitComplementary) {
         return {
           isCompatible: false,
-          reason: "Pinned colors don't form split-complementary relationships",
+          reason:
+            "Pinned colors cannot form a valid split-complementary pattern",
           educationalTooltip:
             "Split-complementary schemes use a base color plus the two colors adjacent to its complement (150° and 210° from the base). Your pinned colors don't fit this pattern.",
         };

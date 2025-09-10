@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useAtom } from "jotai";
 import {
   colorsAtom,
@@ -51,15 +51,22 @@ export function ColorTab() {
 
   // Generation function that respects pinning and compatibility
   const generateVariation = useCallback(() => {
-    // If random is selected and there are compatibility constraints, pick from compatible options
+    // If random is selected, handle compatibility logic
     let effectiveScheme = selectedScheme;
-    if (
-      selectedScheme === "random" &&
-      harmonyCompatibility.compatibleHarmonies.length > 0
-    ) {
-      const compatibleOptions = harmonyCompatibility.compatibleHarmonies;
-      effectiveScheme =
-        compatibleOptions[Math.floor(Math.random() * compatibleOptions.length)];
+    if (selectedScheme === "random") {
+      if (harmonyCompatibility.compatibleHarmonies.length > 0) {
+        // Normal case: pick from compatible options
+        const compatibleOptions = harmonyCompatibility.compatibleHarmonies;
+        effectiveScheme =
+          compatibleOptions[
+            Math.floor(Math.random() * compatibleOptions.length)
+          ];
+      } else {
+        // Edge case: no compatible options available
+        // This should not happen if UI logic is correct, but handle gracefully
+        console.warn("Random selected but no compatible harmonies available");
+        effectiveScheme = "analogous"; // Safe fallback
+      }
     }
 
     return generateColorVariation(colors, {
@@ -83,6 +90,30 @@ export function ColorTab() {
     generateFunction: generateVariation,
     onDataChange: setColors,
   });
+
+  // Handle selection state when Random becomes disabled
+  useEffect(() => {
+    if (
+      selectedScheme === "random" &&
+      harmonyCompatibility.compatibleHarmonies.length === 0
+    ) {
+      // Random is no longer valid, revert to first compatible option or default
+      if (harmonyCompatibility.compatibleHarmonies.length > 0) {
+        setSelectedScheme(harmonyCompatibility.compatibleHarmonies[0]);
+      } else {
+        // Find first compatible harmony option or fallback to analogous
+        const firstCompatible = harmonyCompatibility.harmonyOptions.find(
+          (option) => option.isCompatible
+        );
+        setSelectedScheme(firstCompatible ? firstCompatible.type : "analogous");
+      }
+    }
+  }, [
+    selectedScheme,
+    harmonyCompatibility.compatibleHarmonies,
+    harmonyCompatibility.harmonyOptions,
+    setSelectedScheme,
+  ]);
 
   // Toggle pinning functions
   const togglePin = (colorKey: keyof typeof pinning.colors) => {
@@ -289,9 +320,49 @@ export function ColorTab() {
                     <SelectValue placeholder="Select harmony type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="random">
-                      🎲 Random (Surprise Me!)
-                    </SelectItem>
+                    <HarmonyTooltip
+                      harmonyType="Random"
+                      isCompatible={
+                        harmonyCompatibility.compatibleHarmonies.length > 0
+                      }
+                      tooltip={
+                        harmonyCompatibility.compatibleHarmonies.length > 0
+                          ? `Randomly selects from compatible harmony types based on your pinned colors. Currently available: ${harmonyCompatibility.compatibleHarmonies.join(
+                              ", "
+                            )}.`
+                          : "Random selection is unavailable because no harmony types are compatible with your current pinned color combination."
+                      }
+                      incompatibilityReason={
+                        harmonyCompatibility.compatibleHarmonies.length === 0
+                          ? "No compatible harmony types available"
+                          : undefined
+                      }
+                    >
+                      <SelectItem
+                        value="random"
+                        disabled={
+                          harmonyCompatibility.compatibleHarmonies.length === 0
+                        }
+                        className={
+                          harmonyCompatibility.compatibleHarmonies.length === 0
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }
+                      >
+                        <span
+                          className={
+                            harmonyCompatibility.compatibleHarmonies.length ===
+                            0
+                              ? "text-muted-foreground"
+                              : ""
+                          }
+                        >
+                          🎲 Random (Surprise Me!)
+                          {harmonyCompatibility.compatibleHarmonies.length ===
+                            0 && " 🚫"}
+                        </span>
+                      </SelectItem>
+                    </HarmonyTooltip>
                     {harmonyCompatibility.harmonyOptions.map(
                       (harmonyOption) => {
                         const scheme = COLOR_SCHEMES.find(
@@ -343,7 +414,9 @@ export function ColorTab() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">
                         📌 {harmonyCompatibility.pinnedColorCount} color
-                        {harmonyCompatibility.pinnedColorCount > 1 ? "s" : ""}{" "}
+                        {harmonyCompatibility.pinnedColorCount > 1
+                          ? "s"
+                          : ""}{" "}
                         pinned
                       </span>
                       {harmonyCompatibility.hasIncompatibleOptions && (
