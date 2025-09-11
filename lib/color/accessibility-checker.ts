@@ -80,6 +80,17 @@ export interface AccessibilityImprovement {
 export function analyzeColorAccessibility(
   colorSystem: ColorSystem
 ): AccessibilityReport {
+  // Input validation
+  if (!colorSystem || typeof colorSystem !== "object") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[ColorSystem] Invalid colorSystem for analyzeColorAccessibility",
+        colorSystem
+      );
+    }
+    return getFailsafeAccessibilityReport();
+  }
+
   try {
     // Generate all important color pairs for testing
     const colorPairs = generateColorPairs(colorSystem);
@@ -111,7 +122,10 @@ export function analyzeColorAccessibility(
       improvements,
     };
   } catch (error) {
-    console.warn("Error analyzing color accessibility:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ColorSystem] analyzeColorAccessibility failed:", error);
+      console.warn("[ColorSystem] Input params:", { colorSystem });
+    }
     return getFailsafeAccessibilityReport();
   }
 }
@@ -124,6 +138,33 @@ export function analyzeColorAccessibility(
 export function checkColorBlindnessCompatibility(
   colors: string[]
 ): ColorBlindnessReport {
+  // Input validation
+  if (!colors || !Array.isArray(colors)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[ColorSystem] Invalid colors array for checkColorBlindnessCompatibility",
+        colors
+      );
+    }
+    return {
+      protanopia: {
+        distinguishable: false,
+        issues: ["Invalid input"],
+        severity: "severe",
+      },
+      deuteranopia: {
+        distinguishable: false,
+        issues: ["Invalid input"],
+        severity: "severe",
+      },
+      tritanopia: {
+        distinguishable: false,
+        issues: ["Invalid input"],
+        severity: "severe",
+      },
+    };
+  }
+
   try {
     // Filter out invalid colors
     const validColors = colors.filter((color) => {
@@ -132,13 +173,22 @@ export function checkColorBlindnessCompatibility(
         chroma(color); // Test if color is valid
         return true;
       } catch {
-        console.warn("Skipping invalid color in color blindness check:", color);
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[ColorSystem] Skipping invalid color in color blindness check:",
+            color
+          );
+        }
         return false;
       }
     });
 
     if (validColors.length === 0) {
-      console.warn("No valid colors provided for color blindness check");
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[ColorSystem] No valid colors provided for color blindness check"
+        );
+      }
       throw new Error("No valid colors to analyze");
     }
 
@@ -148,7 +198,13 @@ export function checkColorBlindnessCompatibility(
       tritanopia: testColorBlindnessType(validColors, "tritanopia"),
     };
   } catch (error) {
-    console.warn("Error checking color blindness compatibility:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[ColorSystem] checkColorBlindnessCompatibility failed:",
+        error
+      );
+      console.warn("[ColorSystem] Input params:", { colors });
+    }
     return {
       protanopia: {
         distinguishable: false,
@@ -177,6 +233,30 @@ export function checkColorBlindnessCompatibility(
 export function calculateAccessibilityScore(
   colorSystem: ColorSystem
 ): AccessibilityScore {
+  // Input validation
+  if (!colorSystem || typeof colorSystem !== "object") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[ColorSystem] Invalid colorSystem for calculateAccessibilityScore",
+        colorSystem
+      );
+    }
+    return {
+      total: 0,
+      contrast: 0,
+      colorBlindness: 0,
+      usability: 0,
+      breakdown: {
+        wcagAA: 0,
+        wcagAAA: 0,
+        protanopia: 0,
+        deuteranopia: 0,
+        tritanopia: 0,
+        generalUsability: 0,
+      },
+    };
+  }
+
   try {
     const colorPairs = generateColorPairs(colorSystem);
 
@@ -193,30 +273,61 @@ export function calculateAccessibilityScore(
     // Calculate general usability score
     const generalUsability = calculateUsabilityScore(colorSystem);
 
+    // Validate all scores
+    const validScores = {
+      wcagAA: isNaN(wcagAA) || !isFinite(wcagAA) ? 0 : wcagAA,
+      wcagAAA: isNaN(wcagAAA) || !isFinite(wcagAAA) ? 0 : wcagAAA,
+      protanopia: isNaN(protanopia) || !isFinite(protanopia) ? 0 : protanopia,
+      deuteranopia:
+        isNaN(deuteranopia) || !isFinite(deuteranopia) ? 0 : deuteranopia,
+      tritanopia: isNaN(tritanopia) || !isFinite(tritanopia) ? 0 : tritanopia,
+      generalUsability:
+        isNaN(generalUsability) || !isFinite(generalUsability)
+          ? 0
+          : generalUsability,
+    };
+
     // Calculate weighted totals
-    const contrastScore = wcagAA * 0.7 + wcagAAA * 0.3;
-    const colorBlindnessScore = (protanopia + deuteranopia + tritanopia) / 3;
-    const usabilityScore = generalUsability;
+    const contrastScore = validScores.wcagAA * 0.7 + validScores.wcagAAA * 0.3;
+    const colorBlindnessScore =
+      (validScores.protanopia +
+        validScores.deuteranopia +
+        validScores.tritanopia) /
+      3;
+    const usabilityScore = validScores.generalUsability;
 
     const totalScore =
       contrastScore * 0.5 + colorBlindnessScore * 0.3 + usabilityScore * 0.2;
 
     return {
-      total: Math.round(totalScore),
-      contrast: Math.round(contrastScore),
-      colorBlindness: Math.round(colorBlindnessScore),
-      usability: Math.round(usabilityScore),
+      total: Math.round(Math.max(0, Math.min(100, totalScore))),
+      contrast: Math.round(Math.max(0, Math.min(100, contrastScore))),
+      colorBlindness: Math.round(
+        Math.max(0, Math.min(100, colorBlindnessScore))
+      ),
+      usability: Math.round(Math.max(0, Math.min(100, usabilityScore))),
       breakdown: {
-        wcagAA: Math.round(wcagAA),
-        wcagAAA: Math.round(wcagAAA),
-        protanopia: Math.round(protanopia),
-        deuteranopia: Math.round(deuteranopia),
-        tritanopia: Math.round(tritanopia),
-        generalUsability: Math.round(generalUsability),
+        wcagAA: Math.round(Math.max(0, Math.min(100, validScores.wcagAA))),
+        wcagAAA: Math.round(Math.max(0, Math.min(100, validScores.wcagAAA))),
+        protanopia: Math.round(
+          Math.max(0, Math.min(100, validScores.protanopia))
+        ),
+        deuteranopia: Math.round(
+          Math.max(0, Math.min(100, validScores.deuteranopia))
+        ),
+        tritanopia: Math.round(
+          Math.max(0, Math.min(100, validScores.tritanopia))
+        ),
+        generalUsability: Math.round(
+          Math.max(0, Math.min(100, validScores.generalUsability))
+        ),
       },
     };
   } catch (error) {
-    console.warn("Error calculating accessibility score:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ColorSystem] calculateAccessibilityScore failed:", error);
+      console.warn("[ColorSystem] Input params:", { colorSystem });
+    }
     return {
       total: 0,
       contrast: 0,
@@ -242,87 +353,158 @@ export function calculateAccessibilityScore(
 export function suggestAccessibilityImprovements(
   colorSystem: ColorSystem
 ): AccessibilityImprovement[] {
+  // Input validation
+  if (!colorSystem || typeof colorSystem !== "object") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[ColorSystem] Invalid colorSystem for suggestAccessibilityImprovements",
+        colorSystem
+      );
+    }
+    return [];
+  }
+
   const improvements: AccessibilityImprovement[] = [];
 
   try {
     // Check text/background contrast
-    const textBgContrast = calculateContrast(
-      colorSystem.text,
-      colorSystem.background
-    );
-    if (textBgContrast < 4.5) {
-      improvements.push({
-        type: "contrast",
-        priority: textBgContrast < 3 ? "critical" : "high",
-        title: "Improve text contrast",
-        description: "Text and background colors do not meet WCAG AA standards",
-        currentIssue: `Current contrast ratio: ${textBgContrast.toFixed(1)}:1`,
-        suggestedFix: "Increase color difference between text and background",
-        impact: "Critical for users with visual impairments and low vision",
-        colors: [colorSystem.text, colorSystem.background],
-      });
+    if (colorSystem.text && colorSystem.background) {
+      try {
+        const textBgContrast = calculateContrast(
+          colorSystem.text,
+          colorSystem.background
+        );
+        if (isFinite(textBgContrast) && textBgContrast < 4.5) {
+          improvements.push({
+            type: "contrast",
+            priority: textBgContrast < 3 ? "critical" : "high",
+            title: "Improve text contrast",
+            description:
+              "Text and background colors do not meet WCAG AA standards",
+            currentIssue: `Current contrast ratio: ${textBgContrast.toFixed(
+              1
+            )}:1`,
+            suggestedFix:
+              "Increase color difference between text and background",
+            impact: "Critical for users with visual impairments and low vision",
+            colors: [colorSystem.text, colorSystem.background],
+          });
+        }
+      } catch (contrastError) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[ColorSystem] Failed to calculate text/background contrast",
+            contrastError
+          );
+        }
+      }
     }
 
     // Check primary/background contrast
-    const primaryBgContrast = calculateContrast(
-      colorSystem.primary,
-      colorSystem.background
-    );
-    if (primaryBgContrast < 3) {
-      improvements.push({
-        type: "contrast",
-        priority: "high",
-        title: "Improve primary color visibility",
-        description: "Primary color has insufficient contrast with background",
-        currentIssue: `Current contrast ratio: ${primaryBgContrast.toFixed(
-          1
-        )}:1`,
-        suggestedFix: "Adjust primary color saturation or lightness",
-        impact: "Important UI elements may be hard to see",
-        colors: [colorSystem.primary, colorSystem.background],
-      });
+    if (colorSystem.primary && colorSystem.background) {
+      try {
+        const primaryBgContrast = calculateContrast(
+          colorSystem.primary,
+          colorSystem.background
+        );
+        if (isFinite(primaryBgContrast) && primaryBgContrast < 3) {
+          improvements.push({
+            type: "contrast",
+            priority: "high",
+            title: "Improve primary color visibility",
+            description:
+              "Primary color has insufficient contrast with background",
+            currentIssue: `Current contrast ratio: ${primaryBgContrast.toFixed(
+              1
+            )}:1`,
+            suggestedFix: "Adjust primary color saturation or lightness",
+            impact: "Important UI elements may be hard to see",
+            colors: [colorSystem.primary, colorSystem.background],
+          });
+        }
+      } catch (primaryContrastError) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[ColorSystem] Failed to calculate primary/background contrast",
+            primaryContrastError
+          );
+        }
+      }
     }
 
     // Check color blindness issues
-    const colorBlindness = checkColorBlindnessCompatibility(
-      Object.values(colorSystem)
-    );
+    try {
+      const colorBlindness = checkColorBlindnessCompatibility(
+        Object.values(colorSystem)
+      );
 
-    ["protanopia", "deuteranopia", "tritanopia"].forEach((type) => {
-      const test = colorBlindness[type as keyof ColorBlindnessReport];
-      if (test.severity === "major" || test.severity === "severe") {
-        improvements.push({
-          type: "color-blindness",
-          priority: test.severity === "severe" ? "high" : "medium",
-          title: `Improve ${type} compatibility`,
-          description: `Colors may be difficult to distinguish for users with ${type}`,
-          currentIssue: test.issues.join(", "),
-          suggestedFix:
-            "Use patterns, textures, or alternative visual cues beyond color",
-          impact: `Affects approximately ${getColorBlindnessPrevalence(
-            type
-          )}% of users`,
-        });
+      ["protanopia", "deuteranopia", "tritanopia"].forEach((type) => {
+        try {
+          const test = colorBlindness[type as keyof ColorBlindnessReport];
+          if (
+            test &&
+            (test.severity === "major" || test.severity === "severe")
+          ) {
+            improvements.push({
+              type: "color-blindness",
+              priority: test.severity === "severe" ? "high" : "medium",
+              title: `Improve ${type} compatibility`,
+              description: `Colors may be difficult to distinguish for users with ${type}`,
+              currentIssue: test.issues.join(", "),
+              suggestedFix:
+                "Use patterns, textures, or alternative visual cues beyond color",
+              impact: `Affects approximately ${getColorBlindnessPrevalence(
+                type
+              )}% of users`,
+            });
+          }
+        } catch (blindnessError) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              `[ColorSystem] Failed to process ${type} analysis`,
+              blindnessError
+            );
+          }
+        }
+      });
+    } catch (colorBlindnessError) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[ColorSystem] Failed to check color blindness compatibility",
+          colorBlindnessError
+        );
       }
-    });
+    }
 
     // Check for sufficient color variety
-    const colors = [
-      colorSystem.primary,
-      colorSystem.secondary,
-      colorSystem.accent,
-    ];
-    const distinctColors = countDistinctColors(colors);
-    if (distinctColors < colors.length) {
-      improvements.push({
-        type: "usability",
-        priority: "medium",
-        title: "Increase color distinctiveness",
-        description: "Some colors in the palette are too similar",
-        currentIssue: "Colors may be confused for one another",
-        suggestedFix: "Choose colors with greater visual separation",
-        impact: "Helps users distinguish between different UI elements",
-      });
+    try {
+      const colors = [
+        colorSystem.primary,
+        colorSystem.secondary,
+        colorSystem.accent,
+      ].filter((color) => color && typeof color === "string");
+
+      if (colors.length > 1) {
+        const distinctColors = countDistinctColors(colors);
+        if (distinctColors < colors.length) {
+          improvements.push({
+            type: "usability",
+            priority: "medium",
+            title: "Increase color distinctiveness",
+            description: "Some colors in the palette are too similar",
+            currentIssue: "Colors may be confused for one another",
+            suggestedFix: "Choose colors with greater visual separation",
+            impact: "Helps users distinguish between different UI elements",
+          });
+        }
+      }
+    } catch (varietyError) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[ColorSystem] Failed to check color variety",
+          varietyError
+        );
+      }
     }
 
     // Sort by priority
@@ -331,7 +513,13 @@ export function suggestAccessibilityImprovements(
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
   } catch (error) {
-    console.warn("Error generating accessibility improvements:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[ColorSystem] suggestAccessibilityImprovements failed:",
+        error
+      );
+      console.warn("[ColorSystem] Input params:", { colorSystem });
+    }
     return [];
   }
 }

@@ -42,12 +42,43 @@ export interface HarmonyCompatibilityResult {
  * Returns the shortest angular distance
  */
 export function calculateColorAngle(color1: string, color2: string): number {
+  // Input validation
+  if (
+    !color1 ||
+    typeof color1 !== "string" ||
+    !color2 ||
+    typeof color2 !== "string"
+  ) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ColorSystem] Invalid colors for calculateColorAngle", {
+        color1,
+        color2,
+      });
+    }
+    return 0;
+  }
+
   try {
     const hue1 = chroma(color1).get("hsl.h") || 0;
     const hue2 = chroma(color2).get("hsl.h") || 0;
+
+    // Validate hues
+    if (isNaN(hue1) || isNaN(hue2) || !isFinite(hue1) || !isFinite(hue2)) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[ColorSystem] Invalid hues in calculateColorAngle", {
+          hue1,
+          hue2,
+        });
+      }
+      return 0;
+    }
+
     return calculateHueDistance(hue1, hue2);
   } catch (error) {
-    console.warn("Error calculating color angle:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ColorSystem] calculateColorAngle failed:", error);
+      console.warn("[ColorSystem] Input params:", { color1, color2 });
+    }
     return 0;
   }
 }
@@ -85,10 +116,34 @@ export function getHueRange(hues: number[]): number {
  * Get the hue of a color in degrees (0-360)
  */
 export function getColorHue(color: string): number {
+  // Input validation
+  if (!color || typeof color !== "string") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ColorSystem] Invalid color for getColorHue", color);
+    }
+    return 0;
+  }
+
   try {
-    return chroma(color).get("hsl.h") || 0;
+    const hue = chroma(color).get("hsl.h") || 0;
+
+    // Validate hue
+    if (isNaN(hue) || !isFinite(hue)) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[ColorSystem] Invalid hue result in getColorHue", {
+          color,
+          hue,
+        });
+      }
+      return 0;
+    }
+
+    return hue;
   } catch (error) {
-    console.warn("Error getting color hue:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[ColorSystem] getColorHue failed:", error);
+      console.warn("[ColorSystem] Input params:", { color });
+    }
     return 0;
   }
 }
